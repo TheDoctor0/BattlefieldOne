@@ -8,13 +8,15 @@
 #include <fakemeta_util>
 #include <hamsandwich>
 #include <sqlx>
-#include <colorchat>
-#include <dhudmessage>
 #include <unixtime>
 #include <stripweapons>
+#if AMXX_VERSION_NUM < 183
+#include <colorchat>
+#include <dhudmessage>
+#endif
 
 #define PLUGIN "Battlefield One Mod"
-#define VERSION "1.0"
+#define VERSION "1.2"
 #define AUTHOR "O'Zone"
 
 #define Set(%2,%1) (%1 |= (1<<(%2&31)))
@@ -32,6 +34,7 @@
 #define TASK_HUD 9876
 #define TASK_HELP 8765
 #define TASK_GLOW 7654
+#define TASK_FROST 6543
 #define TASK_TIME 5432
 #define TASK_AD 5432
 
@@ -45,23 +48,23 @@ new const gWeaponNames[][] = { "weapon_p228", "weapon_scout", "weapon_hegrenade"
 "weapon_famas", "weapon_usp", "weapon_glock18", "weapon_awp", "weapon_mp5navy", "weapon_m249", "weapon_m3", "weapon_m4a1", 
 "weapon_tmp", "weapon_g3sg1", "weapon_flashbang", "weapon_deagle", "weapon_sg552", "weapon_ak47", "weapon_p90" }
 
-new const gCmdMainMenu[][] = { "bf1", "say /bf1", "say_team /bf1", "say /bf1menu", "say_team /bf1menu", "say /bf2", "say_team /bf2", "say /bf2menu", "say_team /bf2menu" },
-	gCmdHelp[][] = { "pomoc", "say /pomoc", "say_team /pomoc", "say /help", "say_team /help" },
-	gCmdHelpMenu[][] = { "pomocmenu", "say /pomocmenu", "say_team /pomocmenu", "say /helpmenu", "say_team /helpmenu" },
-	gCmdBadges[][] = { "odznaki", "say /odznaki", "say_team /odznaki", "say /badges", "say_team /badges" },
-	gCmdOrders[][] = { "ordery", "say /ordery", "say_team /ordery", "say /orders", "say_team /orders" },
-	gCmdRanks[][] = { "rangi", "say /rangi", "say_team /rangi", "say /ranks", "say_team /ranks" },
-	gCmdPlayers[][] = { "gracze", "say /gracze", "say_team /gracze", "say /kto", "say_team /kto", "say /players", "say_team /players", "say /who", "say_team /who" },
-	gCmdStats[][] = { "staty", "say /staty", "say_team /staty", "say /stats", "say_team /stats", "say /bf1stats", "say_team /bf1stats" },
-	gCmdStatsMenu[][] = { "statymenu", "say /statymenu", "say_team /statymenu", "say /statsmenu", "say_team /statsmenu" },
-	gCmdStatsServer[][] = { "statyserwer", "say /statyserwer", "say_team /statyserwer", "say /statsserver", "say_team /statsserver", "say /serverstats", "say_team /serverstats" },
-	gCmdHUD[][] = { "hud", "say /hud", "say_team /hud", "say /zmienhud", "say_team /zmienhud", "say /changehud", "say_team /changehud" },
-	gCmdTime[][] = { "czas", "say /czas", "say_team /czas", "say /time", "say_team /time" },
-	gCmdTimeTop[][] = { "topczas", "say /topczas", "say_team /topczas", "say /toptime", "say_team /toptime", "say /ctop15", "say_team /ctop15", "say /ttop15", "say_team /ttop15" },
-	gCmdTimeMenu[][] = { "czasmenu", "say /czasmenu", "say_team /czasmenu", "say /timemenu", "say_team /timemenu" },
-	gCmdDegrees[][] = { "stopnie", "say /stopnie", "say_team /stopnie", "say /degrees", "say_team /degrees", "say /stopien", "say_team /stopien", "say /degree", "say_team /degree" };
+new const gCmdMainMenu[][] = { "bf1", "say /bf1", "say_team /bf1", "say /bf1menu", "say_team /bf1menu", "say /bf2", "say_team /bf2", "say /bf2menu", "say_team /bf2menu" };
+new const gCmdHelp[][] = { "pomoc", "say /pomoc", "say_team /pomoc", "say /help", "say_team /help" };
+new const gCmdHelpMenu[][] = { "pomocmenu", "say /pomocmenu", "say_team /pomocmenu", "say /helpmenu", "say_team /helpmenu" };
+new const gCmdBadges[][] = { "odznaki", "say /odznaki", "say_team /odznaki", "say /badges", "say_team /badges" };
+new const gCmdOrders[][] = { "ordery", "say /ordery", "say_team /ordery", "say /orders", "say_team /orders" };
+new const gCmdRanks[][] = { "rangi", "say /rangi", "say_team /rangi", "say /ranks", "say_team /ranks" };
+new const gCmdPlayers[][] = { "gracze", "say /gracze", "say_team /gracze", "say /kto", "say_team /kto", "say /players", "say_team /players", "say /who", "say_team /who" };
+new const gCmdStats[][] = { "staty", "say /staty", "say_team /staty", "say /stats", "say_team /stats", "say /bf1stats", "say_team /bf1stats" };
+new const gCmdStatsMenu[][] = { "statymenu", "say /statymenu", "say_team /statymenu", "say /statsmenu", "say_team /statsmenu" };
+new const gCmdStatsServer[][] = { "statyserwer", "say /statyserwer", "say_team /statyserwer", "say /statsserver", "say_team /statsserver", "say /serverstats", "say_team /serverstats" };
+new const gCmdHUD[][] = { "hud", "say /hud", "say_team /hud", "say /zmienhud", "say_team /zmienhud", "say /changehud", "say_team /changehud" };
+new const gCmdTime[][] = { "czas", "say /czas", "say_team /czas", "say /time", "say_team /time" };
+new const gCmdTimeTop[][] = { "topczas", "say /topczas", "say_team /topczas", "say /toptime", "say_team /toptime", "say /ctop15", "say_team /ctop15", "say /ttop15", "say_team /ttop15" };
+new const gCmdTimeMenu[][] = { "czasmenu", "say /czasmenu", "say_team /czasmenu", "say /timemenu", "say_team /timemenu" };
+new const gCmdDegrees[][] = { "stopnie", "say /stopnie", "say_team /stopnie", "say /degrees", "say_team /degrees", "say /stopien", "say_team /stopien", "say /degree", "say_team /degree" };
 
-enum _:ePlayer 
+enum _:ePlayer
 { 
 	KILLS, HS_KILLS, ASSISTS, GOLD, SILVER, BRONZE, HUD, HUD_RED, HUD_GREEN, HUD_BLUE, HUD_POSX, HUD_POSY, DEGREE, ADMIN, TIME, VISITS, FIRST_VISIT, LAST_VISIT, KNIFE, PISTOL, GLOCK, USP, P228, 
 	DEAGLE, FIVESEVEN, ELITES, SNIPER, SCOUT, AWP, G3SG1, SG550, RIFLE, AK47, M4A1, GALIL, FAMAS, SG552, AUG, M249, SMG, MAC10, TMP, MP5, UMP45, P90, GRENADE, SHOTGUN, M3, XM1014, PLANTS, EXPLOSIONS, 
@@ -197,9 +200,9 @@ new const gRankKills[MAX_RANKS + 1] =
 	0,		//0
 	25,		//1
 	50,		//2
-	100,		//3
-	250,		//4
-	500,		//5
+	100,	//3
+	250,	//4
+	500,	//5
 	1000,	//6
 	2000,	//7
 	3000,	//8
@@ -251,10 +254,10 @@ new const gBadgeInfo[MAX_BADGES][] =
 
 new const gInvisibleValue[] =
 {
-	150,		//Start
-	110,		//Experienced
-	70,		//Veteran
-	30,		//Master
+	150,	//Nowicjusz
+	110,	//Doswiadczony
+	70,		//Weteran
+	30,		//Mistrz
 };
 
 enum _:eMenus { MENU_MAIN, MENU_HELP, MENU_STATS, MENU_TIME, MENU_BADGES, MENU_PLAYERBADGES, MENU_PLAYERSTATS };
@@ -275,11 +278,13 @@ new sConfigsDir[128], Handle:hSqlHook, Float:fGameTime, gmsgStatusText, gHUD, gH
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
+
+	register_cvar("bf1_version", VERSION, FCVAR_SERVER);
 	
-	pCvarDBHost = register_cvar("bf1_db_host", "sql.pukawka.pl", FCVAR_SPONLY|FCVAR_PROTECTED);
-	pCvarDBUser = register_cvar("bf1_db_user", "326977", FCVAR_SPONLY|FCVAR_PROTECTED);
-	pCvarDBPass = register_cvar("bf1_db_pass", "MHnY7E8OizBWEO1", FCVAR_SPONLY|FCVAR_PROTECTED);
-	pCvarDBBase = register_cvar("bf1_db_database", "326977_bf1", FCVAR_SPONLY|FCVAR_PROTECTED);
+	pCvarDBHost = register_cvar("bf1_db_host", "127.0.0.1", FCVAR_SPONLY|FCVAR_PROTECTED);
+	pCvarDBUser = register_cvar("bf1_db_user", "user", FCVAR_SPONLY|FCVAR_PROTECTED);
+	pCvarDBPass = register_cvar("bf1_db_pass", "pass", FCVAR_SPONLY|FCVAR_PROTECTED);
+	pCvarDBBase = register_cvar("bf1_db_database", "db", FCVAR_SPONLY|FCVAR_PROTECTED);
 	
 	pCvarBF1Active = register_cvar("bf1_active", "1");
 	pCvarBadgePowers = register_cvar("bf1_badgepowers", "1");
@@ -293,35 +298,21 @@ public plugin_init()
 	pCvarMoney = register_cvar("bf1_badge_money", "250");
 	pCvarArmor = register_cvar("bf1_bonus_armor", "25");
 	
-	for(new i = 0; i < sizeof gCmdMainMenu; i++) register_clcmd(gCmdMainMenu[i], "menu_bf1");
-	
-	for(new i = 0; i < sizeof gCmdHelp; i++) register_clcmd(gCmdHelp[i], "cmd_help");
-	
-	for(new i = 0; i < sizeof gCmdHelpMenu; i++) register_clcmd(gCmdHelpMenu[i], "menu_help");
-	
-	for(new i = 0; i < sizeof gCmdBadges; i++) register_clcmd(gCmdBadges[i], "menu_badges");
-	
-	for(new i = 0; i < sizeof gCmdOrders; i++) register_clcmd(gCmdOrders[i], "cmd_orders");
-	
-	for(new i = 0; i < sizeof gCmdRanks; i++) register_clcmd(gCmdRanks[i], "cmd_rankhelp");
-	
-	for(new i = 0; i < sizeof gCmdPlayers; i++) register_clcmd(gCmdPlayers[i], "cmd_ranks");
-	
-	for(new i = 0; i < sizeof gCmdStats; i++) register_clcmd(gCmdStats[i], "cmd_mystats");
-	
-	for(new i = 0; i < sizeof gCmdStatsMenu; i++) register_clcmd(gCmdStatsMenu[i], "menu_stats");
-	
-	for(new i = 0; i < sizeof gCmdStatsServer; i++) register_clcmd(gCmdStatsServer[i], "cmd_serverstats");
-	
-	for(new i = 0; i < sizeof gCmdHUD; i++) register_clcmd(gCmdHUD[i], "hud_menu");
-	
-	for(new i = 0; i < sizeof gCmdTime; i++) register_clcmd(gCmdTime[i], "cmd_time");
-	
-	for(new i = 0; i < sizeof gCmdTimeMenu; i++) register_clcmd(gCmdTimeMenu[i], "menu_time");
-	
-	for(new i = 0; i < sizeof gCmdTimeTop; i++) register_clcmd(gCmdTimeTop[i], "cmd_timetop");
-	
-	for(new i = 0; i < sizeof gCmdDegrees; i++) register_clcmd(gCmdDegrees[i], "cmd_degrees");
+	for(new i; i < sizeof gCmdMainMenu; i++) register_clcmd(gCmdMainMenu[i], "menu_bf1");
+	for(new i; i < sizeof gCmdHelp; i++) register_clcmd(gCmdHelp[i], "cmd_help");
+	for(new i; i < sizeof gCmdHelpMenu; i++) register_clcmd(gCmdHelpMenu[i], "menu_help");
+	for(new i; i < sizeof gCmdBadges; i++) register_clcmd(gCmdBadges[i], "menu_badges");
+	for(new i; i < sizeof gCmdOrders; i++) register_clcmd(gCmdOrders[i], "cmd_orders");
+	for(new i; i < sizeof gCmdRanks; i++) register_clcmd(gCmdRanks[i], "cmd_rankhelp");
+	for(new i; i < sizeof gCmdPlayers; i++) register_clcmd(gCmdPlayers[i], "cmd_ranks");
+	for(new i; i < sizeof gCmdStats; i++) register_clcmd(gCmdStats[i], "cmd_mystats");
+	for(new i; i < sizeof gCmdStatsMenu; i++) register_clcmd(gCmdStatsMenu[i], "menu_stats");
+	for(new i; i < sizeof gCmdStatsServer; i++) register_clcmd(gCmdStatsServer[i], "cmd_serverstats");
+	for(new i; i < sizeof gCmdHUD; i++) register_clcmd(gCmdHUD[i], "hud_menu");
+	for(new i; i < sizeof gCmdTime; i++) register_clcmd(gCmdTime[i], "cmd_time");
+	for(new i; i < sizeof gCmdTimeMenu; i++) register_clcmd(gCmdTimeMenu[i], "menu_time");
+	for(new i; i < sizeof gCmdTimeTop; i++) register_clcmd(gCmdTimeTop[i], "cmd_timetop");
+	for(new i; i < sizeof gCmdDegrees; i++) register_clcmd(gCmdDegrees[i], "cmd_degrees");
 	
 	register_clcmd("say", "cmd_say");
 	register_clcmd("say_team", "cmd_say");
@@ -354,7 +345,7 @@ public plugin_init()
 	RegisterHam(Ham_Spawn, "player", "player_spawn", 1);
 	RegisterHam(Ham_TakeDamage, "player", "player_takedamage", 0);
 	RegisterHam(Ham_Touch, "armoury_entity", "touch_grenades", 0);
-	RegisterHam(Ham_CS_Player_ResetMaxSpeed, "player", "set_speed", 1);
+	RegisterHam(get_player_resetmaxspeed_func(), "player", "set_speed", 1);
 	RegisterHam(Ham_Item_Deploy, "weapon_knife", "weapon_knife", 1);
 	for (new i = 0; i < sizeof gWeaponNames; i++) RegisterHam(Ham_Item_Deploy, gWeaponNames[i], "weapon_other", 1);
 	
@@ -442,7 +433,7 @@ public client_connect(id)
 {
 	if (is_user_bot(id) || is_user_hltv(id)) return PLUGIN_CONTINUE;
 	
-	for(new i = BADGES_COUNT; i < DMG_RECEIVED; i++) gPlayer[id][i] = 0;
+	for(new i = 0; i <= ORDERS_COUNT; i++) gPlayer[id][i] = 0;
 
 	for(new i = 0; i < MAX_BADGES; i++) gPlayer[id][BADGES][i] = 0;
 	
@@ -461,6 +452,9 @@ public client_connect(id)
 	Rem(id, iLoaded);
 	Rem(id, iInvisible);
 	
+	remove_task(id + TASK_HUD);
+	remove_task(id + TASK_AD);
+	
 	get_user_name(id, gPlayer[id][NAME], charsmax(gPlayer[]));
 	
 	mysql_escape_string(gPlayer[id][NAME], gPlayer[id][SAFE_NAME], charsmax(gPlayer[]));
@@ -470,18 +464,17 @@ public client_connect(id)
 	cmd_execute(id, "hud_centerid 0");
 	cmd_execute(id, "cl_shadows 0");
 	
-	remove_task(id + TASK_HUD);
-	remove_task(id + TASK_AD);
-	remove_task(id + TASK_GLOW);
-	remove_task(id + TASK_TIME);
-	
 	set_task(0.1, "display_hud", id + TASK_HUD, _, _, "b");
 	set_task(30.0, "display_advertisement", id + TASK_AD);
 	
 	return PLUGIN_CONTINUE;
 }
 
+#if AMXX_VERSION_NUM < 183
 public client_disconnect(id)
+#else
+public client_disconnected(id)
+#endif
 {
 	save_stats(id, DISCONNECT);
 	
@@ -496,7 +489,7 @@ public client_disconnect(id)
 
 public plugin_natives()
 {
-	register_library("bfranks");
+	register_library("bf1");
 	
 	register_native("bf1_get_maxbadges","_bf1_get_maxbadges");
 	register_native("bf1_get_badge_name","_bf1_get_badge_name", 1);
@@ -527,7 +520,7 @@ public _bf1_get_badge_name(iBadge, iLevel, sReturn[], iLen)
 public _bf1_set_user_badge(plugin, params)
 {
 	if (!is_user_connected(get_param(1))) return -1;
-
+		
 	return gPlayer[get_param(1)][BADGES][get_param(2)] = get_param(3);
 }
 
@@ -628,7 +621,11 @@ public client_death(killer, victim, iWeapon, iHitPlace, iTeamKill)
 		
 		get_user_name(killer, gServer[MOSTKILLSNAME], charsmax(gServer[MOSTKILLSNAME]));
 		
-		ColorChat(0, GREEN, "[BF1]^x03 %s^x01 jest aktualnie liderem we fragach z^x03 %i^x01 zabiciami.", gServer[MOSTKILLSNAME], gServer[MOSTKILLS]);
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(killer, GREEN, "^x04[BF1]^x03 %s^x01 jest aktualnie liderem we fragach z^x03 %i^x01 zabiciami.", gServer[MOSTKILLSNAME], gServer[MOSTKILLS]);
+		#else
+		client_print_color(killer, killer, "^x04[BF1]^x03 %s^x01 jest aktualnie liderem we fragach z^x03 %i^x01 zabiciami.", gServer[MOSTKILLSNAME], gServer[MOSTKILLS]);
+		#endif
 	}
 	
 	if (gServer[MOSTSERVERKILLSID] == killer) gServer[MOSTSERVERKILLS]++;
@@ -639,8 +636,12 @@ public client_death(killer, victim, iWeapon, iHitPlace, iTeamKill)
 		client_cmd(killer, "spk %s", gSounds[SOUND_RANKUP]);
 		
 		get_user_name(killer, gServer[MOSTSERVERKILLSNAME], charsmax(gServer[MOSTSERVERKILLSNAME]));
-		
-		ColorChat(0, GREEN, "[BF1]^x01 Gratulacje dla^x03 %s^x01 nowego^x03 ogolnego^x01 lidera we fragach z^x03 %i^x01 zabiciami.", gServer[MOSTSERVERKILLSNAME], gServer[MOSTSERVERKILLS]);
+
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(killer, GREEN, "^x04[BF1]^x01 Gratulacje dla^x03 %s^x01 nowego^x03 ogolnego^x01 lidera we fragach z^x03 %i^x01 zabiciami.", gServer[MOSTSERVERKILLSNAME], gServer[MOSTSERVERKILLS]);
+		#else
+		client_print_color(killer, killer, "^x04[BF1]^x01 Gratulacje dla^x03 %s^x01 nowego^x03 ogolnego^x01 lidera we fragach z^x03 %i^x01 zabiciami.", gServer[MOSTSERVERKILLSNAME], gServer[MOSTSERVERKILLS]);
+		#endif
 	}
 }
 
@@ -658,7 +659,11 @@ public bomb_explode(planter, defuser)
 	gPlayer[planter][EXPLOSIONS]++;
 	gPlayer[planter][KILLS] += 3;
 
-	ColorChat(planter, GREEN, "[BF1]^x01 Dostales^x03 3 fragi^x01 do rangi za wybuch bomby.");
+	#if AMXX_VERSION_NUM < 183
+	ColorChat(planter, GREEN, "^x04[BF1]^x01 Dostales^x03 3 fragi^x01 do rangi za wybuch bomby.");
+	#else
+	client_print_color(planter, planter, "^x04[BF1]^x01 Dostales^x03 3 fragi^x01 do rangi za wybuch bomby.");
+	#endif
 }
 
 public bomb_defused(defuser)
@@ -667,8 +672,12 @@ public bomb_defused(defuser)
 
 	gPlayer[defuser][DEFUSES]++;
 	gPlayer[defuser][KILLS] += 3;
-	
-	ColorChat(defuser, GREEN, "[BF1]^x01 Dostales^x03 3 fragi^x01 do rangi za rozbrojenie bomby.");
+
+	#if AMXX_VERSION_NUM < 183
+	ColorChat(defuser, GREEN, "^x04[BF1]^x01 Dostales^x03 3 fragi^x01 do rangi za rozbrojenie bomby.");
+	#else
+	client_print_color(defuser, defuser, "^x04[BF1]^x01 Dostales^x03 3 fragi^x01 do rangi za rozbrojenie bomby.");
+	#endif
 }
 
 public event_hostages_rescued()
@@ -684,8 +693,12 @@ public event_hostages_rescued()
 	
 	gPlayer[rescuer][RESCUES]++;
 	gPlayer[rescuer][KILLS] += 3;
-	
-	ColorChat(rescuer, GREEN, "[BF1]^x01 Dostales^x03 3 fragi^x01 do rangi za uratowanie zakladnikow.");
+
+	#if AMXX_VERSION_NUM < 183
+	ColorChat(rescuer, GREEN, "^x04[BF1]^x01 Dostales^x03 3 fragi^x01 do rangi za uratowanie zakladnikow.");
+	#else
+	client_print_color(rescuer, rescuer, "^x04[BF1]^x01 Dostales^x03 3 fragi^x01 do rangi za uratowanie zakladnikow.");
+	#endif
 }
 
 public event_deathmsg()
@@ -706,7 +719,11 @@ public event_deathmsg()
 		
 		place_package(victim, killer);
 
-		ColorChat(killer, GREEN, "[BF1]^x01 Zabiles^x03 %s^x01 i wypadla z niego^x03 paczka^x01. Zabierz ja szybko, bo mozesz znalezc w niej kase, fragi, a nawet odznake!", sName);
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(killer, GREEN, "^x04[BF1]^x01 Zabiles^x03 %s^x01 i wypadla z niego^x03 paczka^x01. Zabierz ja szybko, bo mozesz znalezc w niej kase, fragi, a nawet odznake!", sName);
+		#else
+		client_print_color(killer, killer, "^x04[BF1]^x01 Zabiles^x03 %s^x01 i wypadla z niego^x03 paczka^x01. Zabierz ja szybko, bo mozesz znalezc w niej kase, fragi, a nawet odznake!", sName);
+		#endif
 	}
 }
 
@@ -799,12 +816,12 @@ public weapon_knife(weapon)
 	
 	id = pev(weapon, pev_owner);
 
-	set_render(id, cs_get_weapon_id(weapon));
+	set_render(id);
 }
 
-public set_render(id, weapon)
+public set_render(id)
 {
-	if (!get_pcvar_num(pCvarBadgePowers) || !is_user_alive(id) || weapon != CSW_KNIFE) return;
+	if (!get_pcvar_num(pCvarBadgePowers) || !is_user_alive(id) || get_user_weapon(id) != CSW_KNIFE) return;
 	
 	new iTimeBadgeLevel = gPlayer[id][BADGES][BADGE_TIME];
 	
@@ -813,8 +830,6 @@ public set_render(id, weapon)
 		fm_set_rendering(id, kRenderFxNone, 0, 0, 0, kRenderTransTexture, gInvisibleValue[iTimeBadgeLevel - 1]);
 		
 		Set(id, iInvisible);
-		
-		log_amx("Jazda %i", gInvisibleValue[iTimeBadgeLevel - 1]);
 	}
 }
 
@@ -848,7 +863,14 @@ public give_weapons(id)
 	{
 		if(random_num(1, 5 - iSniperBadgeLevel) == 1)
 		{
-			if (check_weapons(id)) ColorChat(id, GREEN, "[BF1]^x01 Nie otrzymales Scouta z racji posiadania odznaki za Walke Bronia Snajperska, bo masz juz bron!");
+			if (check_weapons(id))
+			{
+				#if AMXX_VERSION_NUM < 183
+				ColorChat(id, GREEN, "^x04[BF1]^x01 Nie otrzymales Scouta z racji posiadania odznaki za Walke Bronia Snajperska, bo masz juz bron!");
+				#else
+				client_print_color(id, id, "^x04[BF1]^x01 Nie otrzymales Scouta z racji posiadania odznaki za Walke Bronia Snajperska, bo masz juz bron!");
+				#endif
+			}
 			else 
 			{
 				fm_give_item(id, "weapon_scout");
@@ -927,7 +949,7 @@ public player_spawn(id)
 
 	if (!get_pcvar_num(pCvarBadgePowers)) return HAM_IGNORED;
 	
-	set_render(id, get_user_weapon(id));
+	set_render(id);
 
 	set_task(0.1, "give_weapons", id);
 	
@@ -938,8 +960,12 @@ public player_spawn(id)
 		Rem(id, iNewPlayer);
 		
 		client_cmd(id, "spk %s", gSounds[SOUND_LOAD]);
-		
-		ColorChat(id, GREEN, "[BF1]^x01 Twoja ranga^x03 %s^x01 zostala zaladowana.", gRankName[gPlayer[id][RANK]]);
+
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(id, GREEN, "^x04[BF1]^x01 Twoja ranga^x03 %s^x01 zostala zaladowana.", gRankName[gPlayer[id][RANK]]);
+		#else
+		client_print_color(id, id, "^x04[BF1]^x01 Twoja ranga^x03 %s^x01 zostala zaladowana.", gRankName[gPlayer[id][RANK]]);
+		#endif
 	}
 
 	return HAM_IGNORED;
@@ -1023,7 +1049,7 @@ public player_prethink(id)
 public use_package(id)
 {
 	if (!is_user_connected(id) || !is_user_alive(id) || !get_pcvar_num(pCvarPackage) || bPackages) return PLUGIN_HANDLED;
-
+		
 	switch(random_num(1, 15))
 	{
 		case 1 .. 3:
@@ -1032,39 +1058,59 @@ public use_package(id)
 
 			fm_set_user_health(id, min(get_user_health(id) + iRandomHP, iMaxHP));
 
-			ColorChat(id, GREEN, "[BF1]^x01 Znalazles mala apteczke. Dostajesz^x03 %i^x01 HP!", iRandomHP);
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Znalazles mala apteczke. Dostajesz^x03 %i^x01 HP!", iRandomHP);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Znalazles mala apteczke. Dostajesz^x03 %i^x01 HP!", iRandomHP);
+			#endif
 		}
 		case 4 .. 6:
 		{
 			new iRandomHP = random_num(25, 50), iMaxHP = 100 + (gPlayer[id][BADGES][BADGE_ASSAULT] * get_pcvar_num(pCvarHP));
 
 			fm_set_user_health(id, min(get_user_health(id) + iRandomHP, iMaxHP));
-			
-			ColorChat(id, GREEN,"[BF1]^x01 Znalazles duza apteczke. Dostajesz^x03 %i^x01 HP!", iRandomHP);
+
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Znalazles duza apteczke. Dostajesz^x03 %i^x01 HP!", iRandomHP);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Znalazles duza apteczke. Dostajesz^x03 %i^x01 HP!", iRandomHP);
+			#endif
 		}
 		case 7 .. 9:
 		{
 			new iRandomMoney = random_num(500, 2500);
 			
 			cs_set_user_money(id, min(cs_get_user_money(id) + iRandomMoney, 16000), 1);
-			
-			ColorChat(id, GREEN,"[BF1]^x01 Znalazles troche gotowki. Dostajesz^x03 %i$^x01!", iRandomMoney);
+
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Znalazles troche gotowki. Dostajesz^x03 %i$^x01!", iRandomMoney);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Znalazles troche gotowki. Dostajesz^x03 %i$^x01!", iRandomMoney);
+			#endif
 		}
 		case 10 .. 12:
 		{
 			new iRandomMoney = random_num(2500, 6000);
 			
 			cs_set_user_money(id, min(cs_get_user_money(id) + iRandomMoney, 16000), 1);
-			
-			ColorChat(id, GREEN,"[BF1]^x01 Znalazles sporo gotowki. Dostajesz^x03 %i$^x01!", iRandomMoney);
+
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Znalazles sporo gotowki. Dostajesz^x03 %i$^x01!", iRandomMoney);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Znalazles sporo gotowki. Dostajesz^x03 %i$^x01!", iRandomMoney);
+			#endif
 		}
 		case 13, 14:
 		{
 			set_user_frags(id, get_user_frags(id) + 1);
 			
 			gPlayer[id][KILLS]++;
-			
-			ColorChat(id, GREEN,"[BF1]^x01 Niezle! Dostajesz dodatkowego^x03 fraga^x01.");
+
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Niezle! Dostajesz dodatkowego^x03 fraga^x01.");
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Niezle! Dostajesz dodatkowego^x03 fraga^x01.");
+			#endif
 		}
 		case 15:
 		{
@@ -1086,8 +1132,13 @@ public use_package(id)
 					if (gPlayer[id][BADGES][iBadge] < LEVEL_START)
 					{
 						gPlayer[id][BADGES][iBadge] = LEVEL_START;
-					
-						ColorChat(id, GREEN,"[BF1]^x01 Wow! Znalazles losowa^x03 odznake^x01 na poziomie^x03 Nowicjusz^x01.")
+
+						#if AMXX_VERSION_NUM < 183
+						ColorChat(id, GREEN, "^x04[BF1]^x01 Wow! Znalazles losowa^x03 odznake^x01 na poziomie^x03 Nowicjusz^x01.");
+						#else
+						client_print_color(id, id, "^x04[BF1]^x01 Wow! Znalazles losowa^x03 odznake^x01 na poziomie^x03 Nowicjusz^x01.");
+						#endif
+
 						break;
 					}
 				
@@ -1099,8 +1150,12 @@ public use_package(id)
 				set_user_frags(id, get_user_frags(id) + 2);
 			
 				gPlayer[id][KILLS] += 2;
-			
-				ColorChat(id, GREEN,"[BF1]^x01 Masz wszystkie odznaki z poziomu Nowicjusz, wiec dostajesz^x03 dwa fragi^x01.");
+
+				#if AMXX_VERSION_NUM < 183
+				ColorChat(id, GREEN, "^x04[BF1]^x01 Masz wszystkie odznaki z poziomu Nowicjusz, wiec dostajesz^x03 dwa fragi^x01.");
+				#else
+				client_print_color(id, id, "^x04[BF1]^x01 Masz wszystkie odznaki z poziomu Nowicjusz, wiec dostajesz^x03 dwa fragi^x01.");
+				#endif
 			}
 			
 			ArrayDestroy(Array:aBadges);
@@ -1116,7 +1171,7 @@ public place_package(id, owner)
 	
 	pev(id, pev_origin, fOrigin);
 
-	fOrigin[2] -= distance_to_floor(fOrigin);
+	fOrigin[2] -= 30.0;
 	
 	new entity = fm_create_entity("info_target");
 	
@@ -1135,19 +1190,19 @@ public place_package(id, owner)
 	
 	entity_set_int(entity, EV_INT_sequence, 1);
 	entity_set_float(entity, EV_FL_animtime, 360.0);
-	entity_set_float(entity, EV_FL_framerate, 1.0);
+	entity_set_float(entity, EV_FL_framerate,  1.0);
 	entity_set_float(entity, EV_FL_frame, 0.0);
 }
 
 public touch_package(entity, id)
 {
-	if (!pev_valid(entity) || !is_user_alive(id)) return HAM_IGNORED;
+	if (!pev_valid(entity) || !is_user_alive(id)) return FMRES_IGNORED;
 
 	static sClassName[64];
 	
 	pev(entity, pev_classname, sClassName, charsmax(sClassName));
 	
-	if (!equal(sClassName, "package")) return HAM_IGNORED;
+	if (!equal(sClassName, "package")) return FMRES_IGNORED;
 	
 	new iOrigin[3];
 	get_user_origin(id, iOrigin);
@@ -1183,7 +1238,7 @@ public touch_package(entity, id)
 	
 	use_package(id);
 
-	return HAM_IGNORED;
+	return FMRES_IGNORED;
 }
 
 public check_rank(id)
@@ -1237,8 +1292,12 @@ public check_rank(id)
 	if (is_ranked_higher(gPlayer[id][RANK], iPreviousRank))
 	{
 		client_cmd(id, "spk %s", gSounds[SOUND_RANKUP]);
-		
-		ColorChat(id, GREEN, "[BF1]^x01 Gratulacje! Awansowales do rangi^x03 %s^x01.", gRankName[gPlayer[id][RANK]]);
+
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(id, GREEN, "^x04[BF1]^x01 Gratulacje! Awansowales do rangi^x03 %s^x01.", gRankName[gPlayer[id][RANK]]);
+		#else
+		client_print_color(id, id, "^x04[BF1]^x01 Gratulacje! Awansowales do rangi^x03 %s^x01.", gRankName[gPlayer[id][RANK]]);
+		#endif
 	}
 	
 	if (is_ranked_higher(gPlayer[id][RANK], gServer[HIGHESTRANK]))
@@ -1247,8 +1306,12 @@ public check_rank(id)
 		gServer[HIGHESTRANKID] = id;
 		
 		get_user_name(id, gServer[HIGHESTRANKNAME], charsmax(gServer[HIGHESTRANKNAME]));
-		
-		ColorChat(0, GREEN, "[BF1]^x03 %s^x01 jest aktualnie liderem Rankingu Oficerskiego z ranga^x03 %s^x01!", gServer[HIGHESTRANKNAME], gRankName[gServer[HIGHESTRANK]]);
+
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(0, GREEN, "^x04[BF1]^x03 %s^x01 jest aktualnie liderem Rankingu Oficerskiego z ranga^x03 %s^x01!", gServer[HIGHESTRANKNAME], gRankName[gServer[HIGHESTRANK]]);
+		#else
+		client_print_color(0, id, "^x04[BF1]^x03 %s^x01 jest aktualnie liderem Rankingu Oficerskiego z ranga^x03 %s^x01!", gServer[HIGHESTRANKNAME], gRankName[gServer[HIGHESTRANK]]);
+		#endif
 	}
 
 	if (is_ranked_higher(gPlayer[id][RANK], gServer[HIGHESTSERVERRANK]))
@@ -1258,8 +1321,12 @@ public check_rank(id)
 		client_cmd(id, "spk %s", gSounds[SOUND_RANKUP]);
 		
 		get_user_name(id, gServer[HIGHESTSERVERRANKNAME], charsmax(gServer[HIGHESTSERVERRANKNAME]));
-		
-		ColorChat(0, GREEN, "[BF1]^x01 Gratulacje dla^x03 %s^x01 nowego^x03 ogolnego^x01 lidera Rankingu Oficerskiego z ranga^x03 %s^x01!", gServer[HIGHESTSERVERRANKNAME], gRankName[gServer[HIGHESTSERVERRANK]]);
+
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(0, GREEN, "^x04[BF1]^x01 Gratulacje dla^x03 %s^x01 nowego^x03 ogolnego^x01 lidera Rankingu Oficerskiego z ranga^x03 %s^x01!", gServer[HIGHESTSERVERRANKNAME], gRankName[gServer[HIGHESTSERVERRANK]]);
+		#else
+		client_print_color(0, id, "^x04[BF1]^x01 Gratulacje dla^x03 %s^x01 nowego^x03 ogolnego^x01 lidera Rankingu Oficerskiego z ranga^x03 %s^x01!", gServer[HIGHESTSERVERRANKNAME], gRankName[gServer[HIGHESTSERVERRANK]]);
+		#endif
 	}
 }
 
@@ -1269,7 +1336,11 @@ public check_badges(id)
 
 	new iWeaponKills, iRoundKills, iRoundHSKills, iBadge, iLevel, bool:bBadge;
 
-	ColorChat(id, GREEN, "[BF1]^x01 Sprawdzanie zdobytych odznak...");
+	#if AMXX_VERSION_NUM < 183
+	ColorChat(id, GREEN, "^x04[BF1]^x01 Sprawdzanie zdobytych odznak...");
+	#else
+	client_print_color(id, id, "^x04[BF1]^x01 Sprawdzanie zdobytych odznak...");
+	#endif
 	
 	iBadge = gPlayer[id][BADGES][BADGE_KNIFE];
 	
@@ -1297,8 +1368,12 @@ public check_badges(id)
 			bBadge = true;
 			
 			gPlayer[id][BADGES][BADGE_KNIFE] = iLevel;
-			
-			ColorChat(id, GREEN, "[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_KNIFE][iLevel]);
+
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_KNIFE][iLevel]);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_KNIFE][iLevel]);
+			#endif
 		}
 	}
 	
@@ -1333,8 +1408,12 @@ public check_badges(id)
 			bBadge = true;
 			
 			gPlayer[id][BADGES][BADGE_PISTOL] = iLevel;
-			
-			ColorChat(id, GREEN, "[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_PISTOL][iLevel]);
+
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_PISTOL][iLevel]);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_PISTOL][iLevel]);
+			#endif
 		}
 	}
 	
@@ -1369,8 +1448,12 @@ public check_badges(id)
 			bBadge = true;
 			
 			gPlayer[id][BADGES][BADGE_ASSAULT] = iLevel;
-			
-			ColorChat(id, GREEN, "[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_ASSAULT][iLevel]);
+
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_ASSAULT][iLevel]);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_ASSAULT][iLevel]);
+			#endif
 		}
 	}
 
@@ -1403,8 +1486,12 @@ public check_badges(id)
 			bBadge = true;
 			
 			gPlayer[id][BADGES][BADGE_SNIPER] = iLevel;
-			
-			ColorChat(id, GREEN, "[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_SNIPER][iLevel]);
+
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_SNIPER][iLevel]);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_SNIPER][iLevel]);
+			#endif
 		}
 	}
 
@@ -1435,7 +1522,11 @@ public check_badges(id)
 			
 			gPlayer[id][BADGES][BADGE_SUPPORT] = iLevel;
 			
-			ColorChat(id, GREEN, "[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_SUPPORT][iLevel]);
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_SUPPORT][iLevel]);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_SUPPORT][iLevel]);
+			#endif
 		}
 	}
 	
@@ -1463,7 +1554,11 @@ public check_badges(id)
 			
 			gPlayer[id][BADGES][BADGE_EXPLOSIVES] = iLevel;
 			
-			ColorChat(id, GREEN, "[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_EXPLOSIVES][iLevel]);
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_EXPLOSIVES][iLevel]);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_EXPLOSIVES][iLevel]);
+			#endif
 		}
 	}
 
@@ -1495,7 +1590,11 @@ public check_badges(id)
 			
 			gPlayer[id][BADGES][BADGE_SHOTGUN] = iLevel;
 			
-			ColorChat(id, GREEN, "[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_SHOTGUN][iLevel]);
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_SHOTGUN][iLevel]);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_SHOTGUN][iLevel]);
+			#endif
 		}
 	}
 
@@ -1530,7 +1629,11 @@ public check_badges(id)
 			
 			gPlayer[id][BADGES][BADGE_SMG] = iLevel;
 			
-			ColorChat(id, GREEN, "[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_SMG][iLevel]);
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_SMG][iLevel]);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_SMG][iLevel]);
+			#endif
 		}
 	}
 
@@ -1556,7 +1659,11 @@ public check_badges(id)
 			
 			gPlayer[id][BADGES][BADGE_TIME] = iLevel;
 			
-			ColorChat(id, GREEN, "[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_TIME][iLevel]);
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_TIME][iLevel]);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_TIME][iLevel]);
+			#endif
 		}
 	}
 
@@ -1612,7 +1719,11 @@ public check_badges(id)
 
 			gPlayer[id][BADGES][BADGE_GENERAL] = iLevel;
 
-			ColorChat(id, GREEN, "[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_GENERAL][iLevel]);
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_GENERAL][iLevel]);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Zdobyles odznake:^x03 %s^x01.", gBadgeName[BADGE_GENERAL][iLevel]);
+			#endif
 		}
 	}
 
@@ -1632,13 +1743,21 @@ public check_orders(id)
 
 	new bool:bOrder;
 
-	ColorChat(id, GREEN, "[BF1]^x01 Sprawdzanie zdobytych orderow...");
+	#if AMXX_VERSION_NUM < 183
+	ColorChat(id, GREEN, "^x04[BF1]^x01 Sprawdzanie zdobytych orderow...");
+	#else
+	client_print_color(id, id, "^x04[BF1]^x01 Sprawdzanie zdobytych orderow...");
+	#endif
 	
 	if(!gPlayer[id][ORDERS][ORDER_AIMBOT] && gPlayer[id][HS_KILLS] >= 2500)
 	{
 		gPlayer[id][ORDERS][ORDER_AIMBOT] = 1;
-		
-		ColorChat(id, GREEN, "[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_AIMBOT][DESIGNATION], gOrders[ORDER_AIMBOT][NEEDS]);
+
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_AIMBOT][DESIGNATION], gOrders[ORDER_AIMBOT][NEEDS]);
+		#else
+		client_print_color(id, id, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_AIMBOT][DESIGNATION], gOrders[ORDER_AIMBOT][NEEDS]);
+		#endif
 		
 		bOrder = true;
 	}
@@ -1646,8 +1765,12 @@ public check_orders(id)
 	if(!gPlayer[id][ORDERS][ORDER_ANGEL] && gPlayer[id][ASSISTS] >= 500)
 	{
 		gPlayer[id][ORDERS][ORDER_ANGEL] = 1;
-		
-		ColorChat(id, GREEN, "[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_ANGEL][DESIGNATION], gOrders[ORDER_ANGEL][NEEDS]);
+
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_ANGEL][DESIGNATION], gOrders[ORDER_ANGEL][NEEDS]);
+		#else
+		client_print_color(id, id, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_ANGEL][DESIGNATION], gOrders[ORDER_ANGEL][NEEDS]);
+		#endif
 		
 		bOrder = true;
 	}
@@ -1656,7 +1779,11 @@ public check_orders(id)
 	{
 		gPlayer[id][ORDERS][ORDER_BOMBERMAN] = 1;
 		
-		ColorChat(id, GREEN, "[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_BOMBERMAN][DESIGNATION], gOrders[ORDER_BOMBERMAN][NEEDS]);
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_BOMBERMAN][DESIGNATION], gOrders[ORDER_BOMBERMAN][NEEDS]);
+		#else
+		client_print_color(id, id, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_BOMBERMAN][DESIGNATION], gOrders[ORDER_BOMBERMAN][NEEDS]);
+		#endif
 		
 		bOrder = true;
 	}
@@ -1665,7 +1792,11 @@ public check_orders(id)
 	{
 		gPlayer[id][ORDERS][ORDER_SAPER] = 1;
 		
-		ColorChat(id, GREEN, "[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_SAPER][DESIGNATION], gOrders[ORDER_SAPER][NEEDS]);
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_SAPER][DESIGNATION], gOrders[ORDER_SAPER][NEEDS]);
+		#else
+		client_print_color(id, id, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_SAPER][DESIGNATION], gOrders[ORDER_SAPER][NEEDS]);
+		#endif
 		
 		bOrder = true;
 	}
@@ -1674,7 +1805,11 @@ public check_orders(id)
 	{
 		gPlayer[id][ORDERS][ORDER_PERSIST] = 1;
 		
-		ColorChat(id, GREEN, "[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_PERSIST][DESIGNATION], gOrders[ORDER_PERSIST][NEEDS]);
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_PERSIST][DESIGNATION], gOrders[ORDER_PERSIST][NEEDS]);
+		#else
+		client_print_color(id, id, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_PERSIST][DESIGNATION], gOrders[ORDER_PERSIST][NEEDS]);
+		#endif
 		
 		bOrder = true;
 	}
@@ -1682,8 +1817,12 @@ public check_orders(id)
 	if(!gPlayer[id][ORDERS][ORDER_DESERV] && (gPlayer[id][GOLD] + gPlayer[id][SILVER]  + gPlayer[id][BRONZE]) >= 100)
 	{
 		gPlayer[id][ORDERS][ORDER_DESERV] = 1;
-		
-		ColorChat(id, GREEN, "[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_DESERV][DESIGNATION], gOrders[ORDER_DESERV][NEEDS]);
+
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_DESERV][DESIGNATION], gOrders[ORDER_DESERV][NEEDS]);
+		#else
+		client_print_color(id, id, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_DESERV][DESIGNATION], gOrders[ORDER_DESERV][NEEDS]);
+		#endif
 		
 		bOrder = true;
 	}
@@ -1691,8 +1830,12 @@ public check_orders(id)
 	if(!gPlayer[id][ORDERS][ORDER_MILION] && gPlayer[id][EARNED] >= 1000000)
 	{
 		gPlayer[id][ORDERS][ORDER_MILION] = 1;
-		
-		ColorChat(id, GREEN, "[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_MILION][DESIGNATION], gOrders[ORDER_MILION][NEEDS]);
+
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_MILION][DESIGNATION], gOrders[ORDER_MILION][NEEDS]);
+		#else
+		client_print_color(id, id, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_MILION][DESIGNATION], gOrders[ORDER_MILION][NEEDS]);
+		#endif
 		
 		bOrder = true;
 	}
@@ -1700,8 +1843,12 @@ public check_orders(id)
 	if(!gPlayer[id][ORDERS][ORDER_BULLET] && gPlayer[id][DMG_RECEIVED] >= 50000)
 	{
 		gPlayer[id][ORDERS][ORDER_BULLET] = 1;
-		
-		ColorChat(id, GREEN, "[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_BULLET][DESIGNATION], gOrders[ORDER_BULLET][NEEDS]);
+
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_BULLET][DESIGNATION], gOrders[ORDER_BULLET][NEEDS]);
+		#else
+		client_print_color(id, id, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_BULLET][DESIGNATION], gOrders[ORDER_BULLET][NEEDS]);
+		#endif
 		
 		bOrder = true;
 	}
@@ -1709,8 +1856,12 @@ public check_orders(id)
 	if(!gPlayer[id][ORDERS][ORDER_RAMBO] && gPlayer[id][DMG_TAKEN] >= 50000)
 	{
 		gPlayer[id][ORDERS][ORDER_RAMBO] = 1;
-		
-		ColorChat(id, GREEN, "[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_RAMBO][DESIGNATION], gOrders[ORDER_RAMBO][NEEDS]);
+
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_RAMBO][DESIGNATION], gOrders[ORDER_RAMBO][NEEDS]);
+		#else
+		client_print_color(id, id, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_RAMBO][DESIGNATION], gOrders[ORDER_RAMBO][NEEDS]);
+		#endif
 		
 		bOrder = true;
 	}
@@ -1718,8 +1869,12 @@ public check_orders(id)
 	if(!gPlayer[id][ORDERS][ORDER_SURVIVER] && gPlayer[id][SURVIVED] >= 1000)
 	{
 		gPlayer[id][ORDERS][ORDER_SURVIVER] = 1;
-		
-		ColorChat(id, GREEN, "[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_SURVIVER][DESIGNATION], gOrders[ORDER_SURVIVER][NEEDS]);
+
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(id, GREEN, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_SURVIVER][DESIGNATION], gOrders[ORDER_SURVIVER][NEEDS]);
+		#else
+		client_print_color(id, id, "^x04[BF1]^x01 Zdobyles order:^x03 %s - %s^x01.", gOrders[ORDER_SURVIVER][DESIGNATION], gOrders[ORDER_SURVIVER][NEEDS]);
+		#endif
 		
 		bOrder = true;
 	}
@@ -1756,7 +1911,11 @@ public most_kills_disconnect()
 	
 	get_user_name(gServer[MOSTKILLSID], gServer[MOSTKILLSNAME], charsmax(gServer[MOSTKILLSNAME]));
 	
-	ColorChat(0, GREEN, "[BF1]^x03 %s^x01 jest aktualnie liderem we fragach z^x03 %i^x01 zabiciami.", gServer[MOSTKILLSNAME], gServer[MOSTKILLS]);
+	#if AMXX_VERSION_NUM < 183
+	ColorChat(0, GREEN, "^x04[BF1]^x03 %s^x01 jest aktualnie liderem we fragach z^x03 %i^x01 zabiciami.", gServer[MOSTKILLSNAME], gServer[MOSTKILLS]);
+	#else
+	client_print_color(0, gServer[MOSTKILLSID], "^x04[BF1]^x03 %s^x01 jest aktualnie liderem we fragach z^x03 %i^x01 zabiciami.", gServer[MOSTKILLSNAME], gServer[MOSTKILLS]);
+	#endif
 }
 
 public most_wins_disconnect()
@@ -1782,8 +1941,12 @@ public most_wins_disconnect()
 	if (!gServer[MOSTWINSID]) return;
 	
 	get_user_name(gServer[MOSTWINSID], gServer[MOSTWINSNAME], charsmax(gServer[MOSTWINSNAME]));
-	
-	ColorChat(0, GREEN, "[BF1]^x03 %s^x01 jest aktualnie liderem w zwyciestwach z^x03 %i^x01 zlotymi medalami.", gServer[MOSTWINSNAME], gServer[MOSTWINS]);
+
+	#if AMXX_VERSION_NUM < 183
+	ColorChat(0, GREEN, "^x04[BF1]^x03 %s^x01 jest aktualnie liderem w zwyciestwach z^x03 %i^x01 zlotymi medalami.", gServer[MOSTWINSNAME], gServer[MOSTWINS]);
+	#else
+	client_print_color(0, gServer[MOSTWINSID], "^x04[BF1]^x03 %s^x01 jest aktualnie liderem w zwyciestwach z^x03 %i^x01 zlotymi medalami.", gServer[MOSTWINSNAME], gServer[MOSTWINS]);
+	#endif
 }
 
 public highest_rank_disconnect()
@@ -1810,7 +1973,11 @@ public highest_rank_disconnect()
 
 	get_user_name(gServer[HIGHESTRANKID], gServer[HIGHESTRANKNAME], charsmax(gServer[HIGHESTRANKNAME]));
 	
-	ColorChat(0, GREEN, "[BF1]^x03 %s^x01 jest aktualnie liderem Rankingu Oficerskiego z ranga^x03 %s^x01!", gServer[HIGHESTRANKNAME], gRankName[gServer[HIGHESTRANK]]);
+	#if AMXX_VERSION_NUM < 183
+	ColorChat(0, GREEN, "^x04[BF1]^x03 %s^x01 jest aktualnie liderem Rankingu Oficerskiego z ranga^x03 %s^x01!", gServer[HIGHESTRANKNAME], gRankName[gServer[HIGHESTRANK]]);
+	#else
+	client_print_color(0, gServer[HIGHESTRANKID], "^x04[BF1]^x03 %s^x01 jest aktualnie liderem Rankingu Oficerskiego z ranga^x03 %s^x01!", gServer[HIGHESTRANKNAME], gRankName[gServer[HIGHESTRANK]]);
+	#endif
 }
 
 public award_check()
@@ -1865,7 +2032,7 @@ public award_check()
 	gPlayer[iBestID[SECOND]][SILVER]++;
 	gPlayer[iBestID[FIRST]][GOLD]++;
 	
-	for (new i = 0; i < iNum; i++) if(is_user_connected(id)) save_stats(id, MAP_END);
+	for(new i = 0; i < iNum; i++) if(is_user_connected(id)) save_stats(id, MAP_END);
 	
 	for(new i = 0; i < 3; i++) get_user_name(iBestID[i], sName[i], charsmax(sName[]));
 	
@@ -1877,11 +2044,18 @@ public award_check()
 		
 		formatex(gServer[MOSTSERVERWINSNAME], charsmax(gServer[MOSTSERVERWINSNAME]), sName[FIRST]);
 	}
-	
-	ColorChat(0, GREEN, "[BF1]^x01 Gratulacje dla^x03 Zwyciezcow^x01!");
-	ColorChat(0, GREEN, "[BF1]^x03 %s^x01 - Zloty Medal -^x03 %i^x01 Zabojstw%s.", sName[FIRST], iBestFrags[FIRST], bNewLeader ? " - Wygrywa" : "");
-	ColorChat(0, GREEN, "[BF1]^x03 %s^x01 - Srebrny Medal -^x03 %i^x01 Zabojstw.", sName[SECOND], iBestFrags[SECOND]);
-	ColorChat(0, GREEN, "[BF1]^x03 %s^x01 - Brazowy Medal -^x03 %i^x01 Zabojstw.", sName[THIRD], iBestFrags[THIRD]);
+
+	#if AMXX_VERSION_NUM < 183
+	ColorChat(0, GREEN, "^x04[BF1]^x01 Gratulacje dla^x03 Zwyciezcow^x01!");
+	ColorChat(0, GREEN, "^x04[BF1]^x03 %s^x01 - Zloty Medal -^x03 %i^x01 Zabojstw%s.", sName[FIRST], iBestFrags[FIRST], bNewLeader ? " - Wygrywa" : "");
+	ColorChat(0, GREEN, "^x04[BF1]^x03 %s^x01 - Srebrny Medal -^x03 %i^x01 Zabojstw.", sName[SECOND], iBestFrags[SECOND]);
+	ColorChat(0, GREEN, "^x04[BF1]^x03 %s^x01 - Brazowy Medal -^x03 %i^x01 Zabojstw.", sName[THIRD], iBestFrags[THIRD]);
+	#else
+	client_print_color(0, 0, "^x04[BF1]^x01 Gratulacje dla^x03 Zwyciezcow^x01!");
+	client_print_color(0, 0, "^x04[BF1]^x03 %s^x01 - Zloty Medal -^x03 %i^x01 Zabojstw%s.", sName[FIRST], iBestFrags[FIRST], bNewLeader ? " - Wygrywa" : "");
+	client_print_color(0, 0, "^x04[BF1]^x03 %s^x01 - Srebrny Medal -^x03 %i^x01 Zabojstw.", sName[SECOND], iBestFrags[SECOND]);
+	client_print_color(0, 0, "^x04[BF1]^x03 %s^x01 - Brazowy Medal -^x03 %i^x01 Zabojstw.", sName[THIRD], iBestFrags[THIRD]);
+	#endif
 }
 
 public get_weapon_round_stats(id, weapon, &iRoundKills, &iRoundHSKills)
@@ -2078,8 +2252,13 @@ public display_advertisement(id)
 	
 	if (!get_pcvar_num(pCvarBF1Active)) return;
 
-	ColorChat(id, GREEN, "[BF1]^x01 Ten serwer uzywa^x03 %s^x01 w wersji^x03 %s^x01 autorstwa^x03 %s^x01.", PLUGIN, VERSION, AUTHOR);
-	ColorChat(id, GREEN, "[BF1]^x01 Wpisz^x03 /bf1^x01 lub^x03 /pomoc^x01, aby uzyskac wiecej informacji.");
+	#if AMXX_VERSION_NUM < 183
+	ColorChat(id, GREEN, "^x04[BF1]^x01 Ten serwer uzywa^x03 %s^x01 w wersji^x03 %s^x01 autorstwa^x03 %s^x01.", PLUGIN, VERSION, AUTHOR);
+	ColorChat(id, GREEN, "^x04[BF1]^x01 Wpisz^x03 /bf1^x01 lub^x03 /pomoc^x01, aby uzyskac wiecej informacji.");
+	#else
+	client_print_color(id, id, "^x04[BF1]^x01 Ten serwer uzywa^x03 %s^x01 w wersji^x03 %s^x01 autorstwa^x03 %s^x01.", PLUGIN, VERSION, AUTHOR);
+	client_print_color(id, id, "^x04[BF1]^x01 Wpisz^x03 /bf1^x01 lub^x03 /pomoc^x01, aby uzyskac wiecej informacji.");
+	#endif
 }
 
 public display_hud(id)
@@ -2148,13 +2327,40 @@ public display_hud(id)
 
 public display_help()
 {
-	switch(random_num(1, 5))
+	switch(random_num(1, 4))
 	{
-		case 1: { ColorChat(0, GREEN, "[BF1]^x01 Mozesz spersonalizowac wyswietlanie informacji w HUD wpisujac^x03 /hud"); }
-		case 2: { ColorChat(0, GREEN, "[BF1]^x01 Mozesz kupic VIPa lub odznaki nie wychodzac z serwera, wpisz^x03 /sklepsms"); }
-		case 3: { ColorChat(0, GREEN, "[BF1]^x01 Chcesz dowiedziec sie wiecej o modzie BF1? Wpisz komende^x03 /pomoc"); }
-		case 4: { ColorChat(0, GREEN, "[BF1]^x01 Aby wejsc do glownego menu BF1 nalezy wpisac komende^x03 /bf1"); }
-		case 5: { ColorChat(0, GREEN, "[BF1]^x01 W paczkach wypadajacych z graczy znajdziesz^x03 hp, fragi, kase, odznaki^x01!"); }
+		case 1: 
+		{ 
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(0, GREEN, "^x04[BF1]^x01 Mozesz spersonalizowac wyswietlanie informacji w HUD wpisujac^x03 /hud"); 
+			#else
+			client_print_color(0, 0, "^x04[BF1]^x01 Mozesz spersonalizowac wyswietlanie informacji w HUD wpisujac^x03 /hud");
+			#endif
+		}
+		case 2:
+		{ 
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(0, GREEN, "^x04[BF1]^x01 Chcesz dowiedziec sie wiecej o modzie BF1? Wpisz komende^x03 /pomoc");
+			#else
+			client_print_color(0, 0, "^x04[BF1]^x01 Chcesz dowiedziec sie wiecej o modzie BF1? Wpisz komende^x03 /pomoc");
+			#endif
+		}
+		case 3:
+		{ 
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(0, GREEN, "^x04[BF1]^x01 Aby wejsc do glownego menu BF1 nalezy wpisac komende^x03 /bf1");
+			#else
+			client_print_color(0, 0, "^x04[BF1]^x01 Aby wejsc do glownego menu BF1 nalezy wpisac komende^x03 /bf1");
+			#endif
+		}
+		case 4:
+		{ 
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(0, GREEN, "^x04[BF1]^x01 W paczkach wypadajacych z graczy znajdziesz^x03 hp, fragi, kase, odznaki^x01!");
+			#else
+			client_print_color(0, 0, "^x04[BF1]^x01 W paczkach wypadajacych z graczy znajdziesz^x03 hp, fragi, kase, odznaki^x01!");
+			#endif
+		}
 	}
 }
 
@@ -2173,7 +2379,11 @@ public cmd_say(id)
 		
 		if (!player || is_user_bot(player) || is_user_hltv(player))
 		{
-			ColorChat(id, GREEN, "[BF1]^x01 Przepraszamy, gracza^x03 %s^x01 nie ma w tej chwili na serwerze!", sText[10]);
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Przepraszamy, gracza^x03 %s^x01 nie ma w tej chwili na serwerze!", sText[10]);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Przepraszamy, gracza^x03 %s^x01 nie ma w tej chwili na serwerze!", sText[10]);
+			#endif
 			
 			return PLUGIN_CONTINUE;
 		}
@@ -2189,7 +2399,11 @@ public cmd_say(id)
 		
 		if (!player || is_user_bot(player) || is_user_hltv(player))
 		{
-			ColorChat(id, GREEN, "[BF1]^x01 Przepraszamy, gracza^x03 %s^x01 nie ma w tej chwili na serwerze!", sText[10]);
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Przepraszamy, gracza^x03 %s^x01 nie ma w tej chwili na serwerze!", sText[7]);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Przepraszamy, gracza^x03 %s^x01 nie ma w tej chwili na serwerze!", sText[7]);
+			#endif
 			
 			return PLUGIN_CONTINUE;
 		}
@@ -2622,7 +2836,7 @@ public cmd_addbadge(id, level, cid)
 		return PLUGIN_HANDLED;
 	}
 	
-	gPlayer[player][BADGES][iBadge - 1] = iLevel;
+	gPlayer[player][BADGES][iBadge] = iLevel;
 	
 	save_stats(player, NORMAL);
 
@@ -2630,9 +2844,14 @@ public cmd_addbadge(id, level, cid)
 	
 	get_user_name(id, sAdmin, charsmax(sAdmin));
 	get_user_name(player, sPlayer, charsmax(sPlayer));
-	
-	ColorChat(player, GREEN, "[BF1]^x01 Otrzymales odznake:^x03 %s^x01.", gBadgeName[iBadge][iLevel]);
-	ColorChat(id, GREEN, "[BF1]^x01 Przyznales odznake^x03 %s^x01 graczowi^x03 %s^x01.", gBadgeName[iBadge][iLevel], sPlayer);
+
+	#if AMXX_VERSION_NUM < 183
+	ColorChat(player, GREEN, "^x04[BF1]^x01 Otrzymales odznake:^x03 %s^x01.", gBadgeName[iBadge][iLevel]);
+	ColorChat(id, GREEN, "^x04[BF1]^x01 Przyznales odznake^x03 %s^x01 graczowi^x03 %s^x01.", gBadgeName[iBadge][iLevel], sPlayer);
+	#else
+	client_print_color(player, player, "^x04[BF1]^x01 Otrzymales odznake:^x03 %s^x01.", gBadgeName[iBadge][iLevel]);
+	client_print_color(id, id, "^x04[BF1]^x01 Przyznales odznake^x03 %s^x01 graczowi^x03 %s^x01.", gBadgeName[iBadge][iLevel], sPlayer);
+	#endif
 	
 	log_to_file(LOG_FILE, "[BF1-ADMIN] %s przyznal odznake %s graczowi %s.", sAdmin, gBadgeName[iBadge][iLevel], sPlayer);
 
@@ -2677,7 +2896,11 @@ public cmd_addbadge_sql(id, level, cid)
 	
 	get_user_name(id, sAdmin, charsmax(sAdmin));
 
-	ColorChat(id, GREEN, "[BF1]^x01 Przyznales odznake^x03 %s^x01 graczowi^x03 %s^x01.", gBadgeName[iBadge][iLevel], sPlayer);
+	#if AMXX_VERSION_NUM < 183
+	ColorChat(id, GREEN, "^x04[BF1]^x01 Przyznales odznake^x03 %s^x01 graczowi^x03 %s^x01.", gBadgeName[iBadge][iLevel], sPlayer);
+	#else
+	client_print_color(id, id, "^x04[BF1]^x01 Przyznales odznake^x03 %s^x01 graczowi^x03 %s^x01.", gBadgeName[iBadge][iLevel], sPlayer);
+	#endif
 	
 	log_to_file(LOG_FILE, "[BF1-ADMIN] %s przyznal odznake %s graczowi %s.", sAdmin, gBadgeName[iBadge][iLevel], sPlayer);
 
@@ -2715,16 +2938,48 @@ public check_time(id)
 
 	UnixToTime(iTime, iYear, iMonth, iDay, iHour, iMinute, iSecond, UT_TIMEZONE_SERVER);
 	
-	ColorChat(id, GREEN, "[BF1]^x01 Aktualnie jest godzina^x03 %02d:%02d:%02d (Data: %02d.%02d.%02d)^x01.", iHour, iMinute, iSecond, iDay, iMonth, iYear);
+	#if AMXX_VERSION_NUM < 183
+	ColorChat(id, GREEN, "^x04[BF1]^x01 Aktualnie jest godzina^x03 %02d:%02d:%02d (Data: %02d.%02d.%02d)^x01.", iHour, iMinute, iSecond, iDay, iMonth, iYear);
+	#else
+	client_print_color(id, id, "^x04[BF1]^x01 Aktualnie jest godzina^x03 %02d:%02d:%02d (Data: %02d.%02d.%02d)^x01.", iHour, iMinute, iSecond, iDay, iMonth, iYear);
+	#endif
 	
-	if (gPlayer[id][FIRST_VISIT] == gPlayer[id][LAST_VISIT]) ColorChat(id, GREEN, "[BF1]^x01 To twoja^x03 pierwsza wizyta^x01 na serwerze. Zyczymy milej gry!");
+	if (gPlayer[id][FIRST_VISIT] == gPlayer[id][LAST_VISIT])
+	{
+		#if AMXX_VERSION_NUM < 183
+		ColorChat(id, GREEN, "^x04[BF1]^x01 To twoja^x03 pierwsza wizyta^x01 na serwerze. Zyczymy milej gry!");
+		#else
+		client_print_color(id, id, "^x04[BF1]^x01 To twoja^x03 pierwsza wizyta^x01 na serwerze. Zyczymy milej gry!");
+		#endif
+	}
 	else 
 	{
 		UnixToTime(gPlayer[id][LAST_VISIT], iYear, Month, Day, iHour, iMinute, iSecond, UT_TIMEZONE_SERVER);
 		
-		if (iMonth == Month && iDay == Day) ColorChat(id, GREEN, "[BF1]^x01 Twoja ostatnia wizyta miala miejsce^x03 dzisiaj^x01 o^x03 %02d:%02d:%02d^x01. Zyczymy milej gry!", iHour, iMinute, iSecond);
-		else if (iMonth == Month && iDay - 1 == Day) ColorChat(id, GREEN, "[BF1]^x01 Twoja ostatnia wizyta miala miejsce^x03 wczoraj^x01 o^x03 %02d:%02d:%02d^x01. Zyczymy milej gry!", iHour, iMinute, iSecond);
-		else ColorChat(id, GREEN, "[BF1]^x01 Twoja ostatnia wizyta:^x03 %02d:%02d:%02d (Data: %02d.%02d.%02d)^x01. Zyczymy milej gry!", iHour, iMinute, iSecond, Day, Month, iYear);
+		if (iMonth == Month && iDay == Day)
+		{
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Twoja ostatnia wizyta miala miejsce^x03 dzisiaj^x01 o^x03 %02d:%02d:%02d^x01. Zyczymy milej gry!", iHour, iMinute, iSecond);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Twoja ostatnia wizyta miala miejsce^x03 dzisiaj^x01 o^x03 %02d:%02d:%02d^x01. Zyczymy milej gry!", iHour, iMinute, iSecond);
+			#endif
+		}
+		else if (iMonth == Month && iDay - 1 == Day) 
+		{
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Twoja ostatnia wizyta miala miejsce^x03 wczoraj^x01 o^x03 %02d:%02d:%02d^x01. Zyczymy milej gry!", iHour, iMinute, iSecond);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Twoja ostatnia wizyta miala miejsce^x03 wczoraj^x01 o^x03 %02d:%02d:%02d^x01. Zyczymy milej gry!", iHour, iMinute, iSecond);
+			#endif
+		}
+		else 
+		{
+			#if AMXX_VERSION_NUM < 183
+			ColorChat(id, GREEN, "^x04[BF1]^x01 Twoja ostatnia wizyta:^x03 %02d:%02d:%02d (Data: %02d.%02d.%02d)^x01. Zyczymy milej gry!", iHour, iMinute, iSecond, Day, Month, iYear);
+			#else
+			client_print_color(id, id, "^x04[BF1]^x01 Twoja ostatnia wizyta:^x03 %02d:%02d:%02d (Data: %02d.%02d.%02d)^x01. Zyczymy milej gry!", iHour, iMinute, iSecond, Day, Month, iYear);
+			#endif
+		}
 	}
 	
 	Rem(id, iVisit);
@@ -2767,7 +3022,11 @@ public cmd_time_handle(iFailState, Handle:hQuery, sError[], iError, sData[], iDa
 		}
 	}
 	
-	ColorChat(id, GREEN, "[BF1]^x01 Twoj czas gry wynosi^x03 %i h %i min %i s^x01. Zajmujesz^x03 %i^x01 miejsce w rankingu.", iHours, iMinutes, iSeconds, iRank);
+	#if AMXX_VERSION_NUM < 183
+	ColorChat(id, GREEN, "^x04[BF1]^x01 Twoj czas gry wynosi^x03 %i h %i min %i s^x01. Zajmujesz^x03 %i^x01 miejsce w rankingu.", iHours, iMinutes, iSeconds, iRank);
+	#else
+	client_print_color(id, id, "^x04[BF1]^x01 Twoj czas gry wynosi^x03 %i h %i min %i s^x01. Zajmujesz^x03 %i^x01 miejsce w rankingu.", iHours, iMinutes, iSeconds, iRank);
+	#endif
 	
 	return PLUGIN_CONTINUE;
 }
@@ -3149,7 +3408,7 @@ public save_stats(id, end)
 	new sCache[2048], sTemp[512];
 
 	formatex(sCache, charsmax(sCache), "UPDATE bf1 SET badge1 = %i, badge2 = %i, badge3 = %i, badge4 = %i, badge5 = %i, badge6 = %i, badge7 = %i, badge8 = %i, badge9 = %i, badge10 = %i, ",
-	gPlayer[id][BADGES][BADGE_KNIFE], gPlayer[id][BADGES][BADGE_PISTOL], gPlayer[id][BADGES][BADGE_ASSAULT], gPlayer[id][BADGES][BADGE_SNIPER], gPlayer[id][BADGES][BADGE_SUPPORT], gPlayer[id][BADGES][BADGE_EXPLOSIVES], gPlayer[id][BADGES][BADGE_SHOTGUN], gPlayer[id][BADGES][BADGE_SMG], gPlayer[id][BADGES][BADGE_TIME], gPlayer[id][BADGES][BADGE_GENERAL]);
+	gPlayer[id][BADGES][BADGE_KNIFE], gPlayer[id][BADGES][BADGE_PISTOL], gPlayer[id][BADGES][BADGE_ASSAULT], gPlayer[id][BADGES][BADGE_SNIPER], gPlayer[id][BADGES][BADGE_SUPPORT], gPlayer[id][BADGES][BADGE_EXPLOSIVES], gPlayer[id][BADGES][BADGE_SHOTGUN], gPlayer[id][BADGES][BADGE_SMG], gPlayer[id][BADGES][BADGE_GENERAL], gPlayer[id][BADGES][BADGE_TIME]);
  
 	formatex(sTemp, charsmax(sTemp), "order1 = %i, order2 = %i, order3 = %i, order4 = %i, order5 = %i, order6 = %i, order7 = %i, order8 = %i, order9 = %i, order10 = %i, ",
 	gPlayer[id][ORDERS][ORDER_AIMBOT], gPlayer[id][ORDERS][ORDER_ANGEL], gPlayer[id][ORDERS][ORDER_BOMBERMAN], gPlayer[id][ORDERS][ORDER_SAPER], gPlayer[id][ORDERS][ORDER_PERSIST], gPlayer[id][ORDERS][ORDER_DESERV], gPlayer[id][ORDERS][ORDER_MILION], gPlayer[id][ORDERS][ORDER_BULLET], gPlayer[id][ORDERS][ORDER_RAMBO], gPlayer[id][ORDERS][ORDER_SURVIVER]);
@@ -3222,7 +3481,7 @@ public load_stats_handle(iFailState, Handle:hQuery, sError[], iError, sData[], i
 		
 		for (new i = 0; i < MAX_ORDERS; i++) gPlayer[id][ORDERS][i] = SQL_ReadResult(hQuery, i + MAX_BADGES + 1);
 		
-		for (new i = 0; i < EARNED; i++) gPlayer[id][i] = SQL_ReadResult(hQuery, i + MAX_BADGES + MAX_ORDERS + 1);
+		for (new i = 0; i <= EARNED; i++) gPlayer[id][i] = SQL_ReadResult(hQuery, i + MAX_BADGES + MAX_ORDERS + 1);
 		
 		gPlayer[id][ADMIN] = (get_user_flags(id) & ADMIN_BAN) ? 1 : 0;
 		
@@ -3348,7 +3607,7 @@ public player_noglow(id)
 
 	fm_set_rendering(id, kRenderFxGlowShell, 0, 0, 0, kRenderNormal, 16);
 	
-	set_render(id, get_user_weapon(id));
+	if(get_user_weapon(id) == CSW_KNIFE) set_render(id);
 }
 
 stock Create_TE_PLAYERATTACHMENT(id, iEntity, iOffset, iSprite, iLife)
@@ -3405,6 +3664,7 @@ stock mysql_escape_string(const szSource[], szDest[], iLen)
 	copy(szDest, iLen, szSource);
 	
 	replace_all(szDest, iLen, "\\", "\\\\");
+	replace_all(szDest, iLen, "\", "\\");
 	replace_all(szDest, iLen, "\0", "\\0");
 	replace_all(szDest, iLen, "\n", "\\n");
 	replace_all(szDest, iLen, "\r", "\\r");
@@ -3450,22 +3710,6 @@ stock bool:check_weapons(id)
 	return false;
 }
 
-stock Float:distance_to_floor(Float:fStart[3], iIgnoreMonsters = 1) 
-{
-    new Float:fDest[3], Float:fEnd[3];
-	
-    fDest[0] = fStart[0];
-    fDest[1] = fStart[1];
-    fDest[2] = -8191.0;
-
-    engfunc(EngFunc_TraceLine, fStart, fDest, iIgnoreMonsters, 0, 0);
-    get_tr2(0, TR_vecEndPos, fEnd);
-
-    new Float:fRet = fStart[2] - fEnd[2];
-
-    return fRet > 0 ? fRet : 0.0;
-}
-
 stock check_map() 
 {
 	new const sPackageMap[][] = 
@@ -3492,4 +3736,13 @@ stock check_map()
 	for(new i = 0; i < sizeof(sPackageMap); i++) if (containi(sMapName, sPackageMap[i]) != -1) { bPackages = true; break; }
 
 	for(new i = 0; i < sizeof(sSmallMap); i++) if (containi(sMapName, sSmallMap[i]) != -1) { server_cmd("amx_cvar bf1_badgepowers 0"); break; }
+}
+
+Ham:get_player_resetmaxspeed_func()
+{
+    #if defined Ham_CS_Player_ResetMaxSpeed
+	return IsHamValid(Ham_CS_Player_ResetMaxSpeed) ? Ham_CS_Player_ResetMaxSpeed : Ham_Item_PreFrame;
+    #else
+	return Ham_Item_PreFrame;
+    #endif
 }
