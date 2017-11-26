@@ -2076,28 +2076,36 @@ bool:is_ranked_higher(rank1, rank2)
 public chat_prefix(msgId, msgDest, msgEnt)
 {
 	new id = get_msg_arg_int(1);
-	
-	if (!is_user_connected(id)) return PLUGIN_CONTINUE;
 
-	new sTemp[256], sMessage[256], sPrefix[64];
+	if (!is_user_connected(id)) return PLUGIN_CONTINUE;
 	
-	get_msg_arg_string(2, sTemp, charsmax(sTemp));
+	new tempMessage[192], message[192], chatPrefix[64], playerName[32];
 	
-	formatex(sPrefix, charsmax(sPrefix), "^x04[%s]", gRankName[gPlayer[id][RANK]]);
+	get_msg_arg_string(2, tempMessage, charsmax(tempMessage));
+
+	formatex(chatPrefix, charsmax(chatPrefix), "^x04[%s]", gRankName[gPlayer[id][RANK]]);
 	
-	if (!equal(sTemp, "#Cstrike_Chat_All"))
+	if (!equal(tempMessage, "#Cstrike_Chat_All"))
 	{
-		add(sMessage, charsmax(sMessage), sPrefix);
-		add(sMessage, charsmax(sMessage), " ");
-		add(sMessage, charsmax(sMessage), sTemp);
+		add(message, charsmax(message), chatPrefix);
+		add(message, charsmax(message), " ");
+		add(message, charsmax(message), tempMessage);
 	}
 	else
 	{
-		add(sMessage, charsmax(sMessage), sPrefix);
-		add(sMessage, charsmax(sMessage), " ^x03%s1 ^x01:  %s2");
+		get_user_name(id, playerName, charsmax(playerName));
+        
+		get_msg_arg_string(4, tempMessage, charsmax(tempMessage)); 
+		set_msg_arg_string(4, "");
+    
+		add(message, charsmax(message), chatPrefix);
+		add(message, charsmax(message), "^x03 ");
+		add(message, charsmax(message), playerName);
+		add(message, charsmax(message), "^x01 :  ");
+		add(message, charsmax(message), tempMessage);
 	}
 	
-	set_msg_arg_string(2, sMessage);
+	set_msg_arg_string(2, message);
 	
 	return PLUGIN_CONTINUE;
 }
