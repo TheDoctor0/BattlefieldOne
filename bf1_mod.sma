@@ -810,44 +810,51 @@ public event_money(id)
 	gPlayer[id][MONEY] = iMoney;
 }
 
-public weapon_knife(weapon)
+public weapon_knife(ent)
 {
-	static id;
-	
-	id = pev(weapon, pev_owner);
+	if (pev_valid(ent) != 2) return HAM_IGNORED;
 
-	set_render(id);
+	static id; id = get_pdata_cbase(ent, 41, 4);
+
+	if (!is_user_alive(id)) return HAM_IGNORED;
+
+	set_render(id, false);
+
+	return HAM_IGNORED;
 }
 
-public set_render(id)
+public weapon_other(ent)
 {
-	if (!get_pcvar_num(pCvarBadgePowers) || !is_user_alive(id) || get_user_weapon(id) != CSW_KNIFE) return;
-	
-	new iTimeBadgeLevel = gPlayer[id][BADGES][BADGE_TIME];
-	
-	if (iTimeBadgeLevel) 
-	{
-		fm_set_rendering(id, kRenderFxNone, 0, 0, 0, kRenderTransTexture, gInvisibleValue[iTimeBadgeLevel - 1]);
-		
-		Set(id, iInvisible);
-	}
-}
+	if (pev_valid(ent) != 2) return HAM_IGNORED;
 
-public weapon_other(weapon)
-{
-	static id;
-	
-	id = pev(weapon, pev_owner);
+	static id; id = get_pdata_cbase(ent, 41, 4);
+
+	if (!is_user_alive(id)) return HAM_IGNORED;
 
 	reset_render(id);
+
+	return HAM_IGNORED;
+}
+
+stock set_render(id, check=true)
+{
+	if (!get_pcvar_num(pCvarBadgePowers) || !is_user_alive(id) || (check && get_user_weapon(id) != CSW_KNIFE)) return;
+
+	new timeBadgeLevel = gPlayer[id][BADGES][BADGE_TIME];
+
+	if (timeBadgeLevel) {
+		fm_set_rendering(id, kRenderFxNone, 0, 0, 0, kRenderTransTexture, gInvisibleValue[timeBadgeLevel - 1]);
+
+		Set(id, iInvisible);
+	}
 }
 
 public reset_render(id)
 {
 	if (!get_pcvar_num(pCvarBadgePowers) || !is_user_alive(id)) return;
-	
+
 	fm_set_rendering(id, kRenderFxNone, 0, 0, 0, kRenderTransTexture, 255);
-	
+
 	Rem(id, iInvisible);
 }
 
