@@ -256,10 +256,10 @@ public plugin_init()
 
 	register_cvar("bf1_version", VERSION, FCVAR_SERVER);
 
-	create_cvar("bf1_db_host", "127.0.0.1", FCVAR_SPONLY | FCVAR_PROTECTED);
-	create_cvar("bf1_db_user", "user", FCVAR_SPONLY | FCVAR_PROTECTED);
-	create_cvar("bf1_db_pass", "password", FCVAR_SPONLY | FCVAR_PROTECTED);
-	create_cvar("bf1_db_database", "database", FCVAR_SPONLY | FCVAR_PROTECTED);
+	create_cvar("bf1_sql_host", "127.0.0.1", FCVAR_SPONLY | FCVAR_PROTECTED);
+	create_cvar("bf1_sql_user", "user", FCVAR_SPONLY | FCVAR_PROTECTED);
+	create_cvar("bf1_sql_pass", "password", FCVAR_SPONLY | FCVAR_PROTECTED);
+	create_cvar("bf1_sql_db", "database", FCVAR_SPONLY | FCVAR_PROTECTED);
 
 	bind_pcvar_num(create_cvar("bf1_enabled", "1"), cvarBf1Enabled);
 	bind_pcvar_num(create_cvar("bf1_badge_powers", "1"), cvarBadgePowers);
@@ -2900,10 +2900,10 @@ public sql_init()
 {
 	new host[64], user[64], pass[64], db[64], queryData[2048], error[128], errorNum;
 
-	get_cvar_string("cod_sql_host", host, charsmax(host));
-	get_cvar_string("cod_sql_user", user, charsmax(user));
-	get_cvar_string("cod_sql_pass", pass, charsmax(pass));
-	get_cvar_string("cod_sql_db", db, charsmax(db));
+	get_cvar_string("bf1_sql_host", host, charsmax(host));
+	get_cvar_string("bf1_sql_user", user, charsmax(user));
+	get_cvar_string("bf1_sql_pass", pass, charsmax(pass));
+	get_cvar_string("bf1_sql_db", db, charsmax(db));
 
 	sql = SQL_MakeDbTuple(host, user, pass, db);
 
