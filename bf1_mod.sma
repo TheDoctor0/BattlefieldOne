@@ -288,7 +288,7 @@ public plugin_init()
 	
 	pCvarBF1Active = register_cvar("bf1_active", "1");
 	pCvarBadgePowers = register_cvar("bf1_badgepowers", "1");
-	pCvarHelpUrl = register_cvar("bf1_help_url", "http://cs-reload.pl/bf1webdocs");
+	pCvarHelpUrl = register_cvar("bf1_help_url", "http://bf1mod.5v.pl/bf1webdocs");
 	pCvarXpMinPlayers = register_cvar("bf1_xpminplayers", "3");
 	pCvarIconTime = register_cvar("bf1_icon_time", "1.5");
 	pCvarPackage = register_cvar("bf1_package_enabled", "1");
