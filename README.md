@@ -1,6 +1,8 @@
 # Battlefield One
 Battlefield One for Counter-Strike 1.6 (AMXX 1.8.3 / 1.9 / 1.10).
 
+[Release pack](https://github.com/TheDoctor0/BattlefieldOne/releases/latest) contains configuration and plugins with all needed resources: models, sounds, sprites etc.
+
 ## Compatibility
 Mod was tested on AMXX builds:
 - 1.8.3-dev+5142
