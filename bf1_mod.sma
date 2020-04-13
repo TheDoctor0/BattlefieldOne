@@ -339,7 +339,7 @@ public plugin_init()
 
 	msgStatusText = get_user_msgid("StatusText");
 
-	set_task(120.0, "display_help", TASK_HELP, .flags = "b");
+	set_task(180.0, "display_help", TASK_HELP, .flags = "b");
 }
 
 public plugin_natives()
