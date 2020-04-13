@@ -11,6 +11,7 @@
 
 #define MAX_NAME        MAX_NAME_LENGTH
 #define MAX_SAFE_NAME   MAX_NAME * 2
+#define MAX_LENGTH      MAX_NAME
 
 /**
  * Returns how many badges are available.
