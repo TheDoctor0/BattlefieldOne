@@ -3,7 +3,9 @@
 #include <bf1>
 
 #define PLUGIN "SklepSMS: Usluga BF1 Odznaki"
-#define VERSION "1.3"
+#if !defined VERSION
+#define VERSION "2.0"
+#endif
 #define AUTHOR "O'Zone"
 
 #define TASK_MENU 8932
