@@ -243,13 +243,12 @@ enum _:hudType { TYPE_HUD, TYPE_DHUD, TYPE_STATUSTEXT };
 enum _:saveType { NORMAL, DISCONNECT, MAP_END };
 
 new cvarBf1Enabled, cvarBadgePowers, cvarMinPlayers, Float:cvarIconTime, cvarPackagesEnabled, cvarDropChance,
-	cvarBadgeHP, Float:cvarBadgeSpeed, cvarBadgeMoney, cvarBadgeArmor, cvarHelpUrl[64];
+	cvarAssistEnabled, cvarAssistDamage, cvarBadgeHP, Float:cvarBadgeSpeed, cvarBadgeMoney, cvarBadgeArmor, cvarHelpUrl[64];
 
-new loaded, newPlayer, visitInfo, invisible, round = 0;
+new playerDamage[MAX_PLAYERS + 1][MAX_PLAYERS + 1], loaded, newPlayer, visitInfo, invisible, round = 0;
 
-new bool:blockPackages, bool:blockPowers, bool:freezeTime, bool:sqlConnected, bool:serverLoaded;
-
-new configPath[64], Handle:sql, Handle:connection, Float:gameTime, msgStatusText, hudSync, hudSyncAim;
+new configPath[64], bool:blockPackages, bool:blockPowers, bool:freezeTime, bool:sqlConnected,
+	bool:serverLoaded, Handle:sql, Handle:connection, Float:gameTime, msgStatusText, hudSync, hudSyncAim;
 
 public plugin_init()
 {
@@ -268,6 +267,8 @@ public plugin_init()
 	bind_pcvar_float(create_cvar("bf1_icon_time", "1.5"), cvarIconTime);
 	bind_pcvar_num(create_cvar("bf1_package_enabled", "1"), cvarPackagesEnabled);
 	bind_pcvar_num(create_cvar("bf1_drop_chance", "8"), cvarDropChance);
+	bind_pcvar_num(create_cvar("cod_assist_enabled", "1"), cvarAssistEnabled);
+	bind_pcvar_num(create_cvar("cod_assist_damage", "65"), cvarAssistDamage);
 	bind_pcvar_num(create_cvar("bf1_badge_hp", "5"), cvarBadgeHP);
 	bind_pcvar_float(create_cvar("bf1_badge_speed", "10.0"), cvarBadgeSpeed);
 	bind_pcvar_num(create_cvar("bf1_badge_money", "250"), cvarBadgeMoney);
@@ -320,7 +321,7 @@ public plugin_init()
 	register_logevent("event_round_end", 2, "1=Round_End");
 
 	RegisterHam(Ham_Spawn, "player", "player_spawn", 1);
-	RegisterHam(Ham_TakeDamage, "player", "player_takedamage", 0);
+	RegisterHam(Ham_TakeDamage, "player", "player_take_damage", 0);
 	RegisterHam(Ham_Touch, "armoury_entity", "touch_grenades", 0);
 	RegisterHam(Ham_CS_Player_ResetMaxSpeed, "player", "set_speed", 1);
 	RegisterHam(Ham_Item_Deploy, "weapon_knife", "weapon_knife", 1);
@@ -349,7 +350,6 @@ public plugin_natives()
 	register_native("bf1_get_badge_name","_bf1_get_badge_name", 1);
 	register_native("bf1_get_user_badge", "_bf1_get_user_badge");
 	register_native("bf1_set_user_badge", "_bf1_set_user_badge");
-	register_native("bf1_add_assist_kill", "_bf1_add_assist_kill");
 }
 
 public plugin_precache()
@@ -499,6 +499,66 @@ public client_death(killer, victim, weapon, hitPlace, teamKill)
 		case CSW_AK47: { bf1Player[killer][AK47]++; bf1Player[killer][RIFLE]++; }
 		case CSW_SG552: { bf1Player[killer][SG552]++; bf1Player[killer][RIFLE]++; }
 		case CSW_HEGRENADE: bf1Player[killer][GRENADE]++;
+	}
+
+	if (cvarAssistEnabled) {
+		new assist = 0, damage = 0;
+
+		for (new id = 1; id <= MAX_PLAYERS; id++) {
+			if (!is_user_connected(id) || is_user_bot(id) || is_user_hltv(id) || id == killer) continue;
+
+			if (playerDamage[id][victim] > damage) {
+				assist = id;
+				damage = playerDamage[id][victim];
+			}
+
+			playerDamage[id][victim] = 0;
+		}
+
+		if (assist > 0 && damage > cvarAssistDamage) {
+			set_user_frags(assist, get_user_frags(assist) + 1);
+
+			cs_set_user_deaths(assist, cs_get_user_deaths(assist));
+
+			new nameVictim[MAX_NAME], nameKiller[MAX_NAME];
+
+			get_user_name(victim, nameVictim, charsmax(nameVictim));
+			get_user_name(killer, nameKiller, charsmax(nameKiller));
+
+			client_print_color(assist, assist, "^x04[BF1]^x03 %s^x01 w zabiciu^x03 %s^x01. Dostajesz fraga!", nameKiller, nameVictim);
+
+			switch (weapon) {
+				case CSW_KNIFE: bf1Player[assist][KNIFE]++;
+				case CSW_M249: bf1Player[assist][M249]++;
+				case CSW_AWP: { bf1Player[assist][SNIPER]++; bf1Player[assist][AWP]++; }
+				case CSW_SCOUT: { bf1Player[assist][SNIPER]++; bf1Player[assist][SCOUT]++; }
+				case CSW_G3SG1: { bf1Player[assist][SNIPER]++; bf1Player[assist][G3SG1]++; }
+				case CSW_SG550: { bf1Player[assist][SNIPER]++; bf1Player[assist][SG550]++; }
+				case CSW_DEAGLE: { bf1Player[assist][PISTOL]++; bf1Player[assist][DEAGLE]++; }
+				case CSW_ELITE: { bf1Player[assist][PISTOL]++; bf1Player[assist][ELITES]++; }
+				case CSW_USP: { bf1Player[assist][PISTOL]++; bf1Player[assist][USP]++; }
+				case CSW_FIVESEVEN: { bf1Player[assist][PISTOL]++; bf1Player[assist][FIVESEVEN]++; }
+				case CSW_P228: { bf1Player[assist][PISTOL]++; bf1Player[assist][P228]++; }
+				case CSW_GLOCK18: { bf1Player[assist][PISTOL]++; bf1Player[assist][GLOCK]++; }
+				case CSW_XM1014: { bf1Player[assist][XM1014]++; bf1Player[assist][SHOTGUN]++; }
+				case CSW_M3: { bf1Player[assist][M3]++; bf1Player[assist][SHOTGUN]++; }
+				case CSW_MAC10: { bf1Player[assist][MAC10]++; bf1Player[assist][SMG]++; }
+				case CSW_UMP45: { bf1Player[assist][UMP45]++; bf1Player[assist][SMG]++; }
+				case CSW_MP5NAVY: { bf1Player[assist][MP5]++; bf1Player[assist][SMG]++; }
+				case CSW_TMP: { bf1Player[assist][TMP]++; bf1Player[assist][SMG]++; }
+				case CSW_P90: { bf1Player[assist][P90]++; bf1Player[assist][SMG]++; }
+				case CSW_AUG: { bf1Player[assist][AUG]++; bf1Player[assist][RIFLE]++; }
+				case CSW_GALIL: { bf1Player[assist][GALIL]++; bf1Player[assist][RIFLE]++; }
+				case CSW_FAMAS: { bf1Player[assist][FAMAS]++; bf1Player[assist][RIFLE]++; }
+				case CSW_M4A1: { bf1Player[assist][M4A1]++; bf1Player[assist][RIFLE]++; }
+				case CSW_AK47: { bf1Player[assist][AK47]++; bf1Player[assist][RIFLE]++; }
+				case CSW_SG552: { bf1Player[assist][SG552]++; bf1Player[assist][RIFLE]++; }
+				case CSW_HEGRENADE: bf1Player[assist][GRENADE]++;
+			}
+
+			bf1Player[assist][ASSISTS]++;
+			bf1Player[assist][KILLS]++;
+		}
 	}
 
 	if (hitPlace == HIT_HEAD) bf1Player[killer][HS_KILLS]++;
@@ -803,6 +863,8 @@ public player_spawn(id)
 {
 	if (!cvarBf1Enabled || !is_user_alive(id)) return HAM_IGNORED;
 
+	for (new i = 1; i <= MAX_PLAYERS; i++) playerDamage[id][i] = 0;
+
 	check_rank(id);
 
 	if (!cvarBadgePowers || !blockPowers) return HAM_IGNORED;
@@ -811,10 +873,9 @@ public player_spawn(id)
 
 	set_task(0.1, "give_weapons", id);
 
-	if(get_bit(id, visitInfo)) set_task(3.0, "check_time", id + TASK_TIME);
+	if (get_bit(id, visitInfo)) set_task(3.0, "check_time", id + TASK_TIME);
 
-	if (get_bit(id, newPlayer) && get_bit(id, loaded))
-	{
+	if (get_bit(id, newPlayer) && get_bit(id, loaded)) {
 		rem_bit(id, newPlayer);
 
 		client_cmd(id, "spk %s", bf1Sounds[SOUND_LOAD]);
@@ -825,25 +886,25 @@ public player_spawn(id)
 	return HAM_IGNORED;
 }
 
-public player_takedamage(victim, iInflictor, attacker, Float:fDamage, iDamageBits)
+public player_take_damage(victim, iInflictor, attacker, Float:damage, damageBits)
 {
 	if (!cvarBadgePowers || !blockPowers || !is_user_connected(attacker) || !is_user_alive(victim)) return HAM_IGNORED;
+
 	if (victim == attacker || cs_get_user_team(victim) == cs_get_user_team(attacker)) return HAM_IGNORED;
 
-	if (iDamageBits & DMG_BULLET)
-	{
-		new bool:bCritical;
+	playerDamage[attacker][victim] += floatround(damage);
 
-		switch(bf1Player[attacker][BADGES][BADGE_ASSAULT])
-		{
-			case LEVEL_START: if(random_num(1, 100) == 1) bCritical = true;
-			case LEVEL_EXPERIENCED: if(random_num(1, 65) == 1) bCritical = true;
-			case LEVEL_VETERAN: if(random_num(1, 50) == 1) bCritical = true;
-			case LEVEL_MASTER: if(random_num(1, 40) == 1) bCritical = true;
+	if (damageBits & DMG_BULLET) {
+		new bool:critical;
+
+		switch (bf1Player[attacker][BADGES][BADGE_ASSAULT]) {
+			case LEVEL_START: if (random_num(1, 100) == 1) critical = true;
+			case LEVEL_EXPERIENCED: if (random_num(1, 65) == 1) critical = true;
+			case LEVEL_VETERAN: if (random_num(1, 50) == 1) critical = true;
+			case LEVEL_MASTER: if (random_num(1, 40) == 1) critical = true;
 		}
 
-		if(bCritical)
-		{
+		if (critical) {
 			cs_set_user_armor(victim, 0, CS_ARMOR_NONE);
 
 			SetHamParamFloat(4, float(get_user_health(victim) + 1));
@@ -852,27 +913,26 @@ public player_takedamage(victim, iInflictor, attacker, Float:fDamage, iDamageBit
 		}
 	}
 
-	new iShotgunBadgeLevel = bf1Player[attacker][BADGES][BADGE_SHOTGUN],
-		iExplosivebadgeIndexLevel = bf1Player[victim][BADGES][BADGE_EXPLOSIVES],
-		iPistolBadgeLevel = bf1Player[victim][BADGES][BADGE_PISTOL];
+	new shotgunBadgeLevel = bf1Player[attacker][BADGES][BADGE_SHOTGUN],
+		explosivesBadgeLevel = bf1Player[victim][BADGES][BADGE_EXPLOSIVES],
+		pistolBadgeLevel = bf1Player[victim][BADGES][BADGE_PISTOL];
 
-	if (iShotgunBadgeLevel) fDamage += fDamage * iShotgunBadgeLevel * 0.04;
+	if (shotgunBadgeLevel) damage += damage * shotgunBadgeLevel * 0.04;
 
-	if (iExplosivebadgeIndexLevel) fDamage -= fDamage * iExplosivebadgeIndexLevel * 0.04;
+	if (explosivesBadgeLevel) damage -= damage * explosivesBadgeLevel * 0.04;
 
-	if(iPistolBadgeLevel && random_num(1, 16 - iPistolBadgeLevel * 2) == 1 && iDamageBits & DMG_BULLET)
-	{
-		ExecuteHam(Ham_TakeDamage, attacker, victim, victim, fDamage, iDamageBits);
+	if (pistolBadgeLevel && random_num(1, 16 - pistolBadgeLevel * 2) == 1 && damageBits & DMG_BULLET) {
+		ExecuteHam(Ham_TakeDamage, attacker, victim, victim, damage, damageBits);
 
 		player_glow(victim, 255, 0, 0);
 
 		return HAM_SUPERCEDE;
 	}
 
-	SetHamParamFloat(4, fDamage);
+	SetHamParamFloat(4, damage);
 
-	bf1Player[victim][DMG_RECEIVED] += floatround(fDamage);
-	bf1Player[attacker][DMG_TAKEN] += floatround(fDamage);
+	bf1Player[victim][DMG_RECEIVED] += floatround(damage);
+	bf1Player[attacker][DMG_TAKEN] += floatround(damage);
 
 	return HAM_HANDLED;
 }
@@ -889,13 +949,13 @@ public set_speed(id)
 public player_prethink(id)
 {
 	if (is_user_alive(id)) {
-		new Float:fVector[3];
+		new Float:vector[3];
 
-		pev(id, pev_velocity, fVector);
+		pev(id, pev_velocity, vector);
 
-		new Float:fSpeed = floatsqroot(fVector[0] * fVector[0] + fVector[1] * fVector[1] + fVector[2] * fVector[2]);
+		new Float:speed = floatsqroot(vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]);
 
-		if ((fm_get_user_maxspeed(id) * 5) > (fSpeed * 9)) set_pev(id, pev_flTimeStepSound, 300);
+		if ((fm_get_user_maxspeed(id) * 5) > (speed * 9)) set_pev(id, pev_flTimeStepSound, 300);
 	}
 }
 
@@ -3228,45 +3288,4 @@ public _bf1_set_user_badge(plugin, params)
 	if (!is_user_connected(get_param(1))) return -1;
 
 	return bf1Player[get_param(1)][BADGES][get_param(2)] = get_param(3);
-}
-
-public _bf1_add_assist_kill(plugin_id, num_params)
-{
-	new id = get_param(1);
-
-	if (!is_user_connected(id)) return;
-
-	switch (get_user_weapon(id)) {
-		case CSW_KNIFE: bf1Player[id][KNIFE]++;
-		case CSW_M249: bf1Player[id][M249]++;
-		case CSW_AWP: { bf1Player[id][SNIPER]++; bf1Player[id][AWP]++; }
-		case CSW_SCOUT: { bf1Player[id][SNIPER]++; bf1Player[id][SCOUT]++; }
-		case CSW_G3SG1: { bf1Player[id][SNIPER]++; bf1Player[id][G3SG1]++; }
-		case CSW_SG550: { bf1Player[id][SNIPER]++; bf1Player[id][SG550]++; }
-		case CSW_DEAGLE: { bf1Player[id][PISTOL]++; bf1Player[id][DEAGLE]++; }
-		case CSW_ELITE: { bf1Player[id][PISTOL]++; bf1Player[id][ELITES]++; }
-		case CSW_USP: { bf1Player[id][PISTOL]++; bf1Player[id][USP]++; }
-		case CSW_FIVESEVEN: { bf1Player[id][PISTOL]++; bf1Player[id][FIVESEVEN]++; }
-		case CSW_P228: { bf1Player[id][PISTOL]++; bf1Player[id][P228]++; }
-		case CSW_GLOCK18: { bf1Player[id][PISTOL]++; bf1Player[id][GLOCK]++; }
-		case CSW_XM1014: { bf1Player[id][XM1014]++; bf1Player[id][SHOTGUN]++; }
-		case CSW_M3: { bf1Player[id][M3]++; bf1Player[id][SHOTGUN]++; }
-		case CSW_MAC10: { bf1Player[id][MAC10]++; bf1Player[id][SMG]++; }
-		case CSW_UMP45: { bf1Player[id][UMP45]++; bf1Player[id][SMG]++; }
-		case CSW_MP5NAVY: { bf1Player[id][MP5]++; bf1Player[id][SMG]++; }
-		case CSW_TMP: { bf1Player[id][TMP]++; bf1Player[id][SMG]++; }
-		case CSW_P90: { bf1Player[id][P90]++; bf1Player[id][SMG]++; }
-		case CSW_AUG: { bf1Player[id][AUG]++; bf1Player[id][RIFLE]++; }
-		case CSW_GALIL: { bf1Player[id][GALIL]++; bf1Player[id][RIFLE]++; }
-		case CSW_FAMAS: { bf1Player[id][FAMAS]++; bf1Player[id][RIFLE]++; }
-		case CSW_M4A1: { bf1Player[id][M4A1]++; bf1Player[id][RIFLE]++; }
-		case CSW_AK47: { bf1Player[id][AK47]++; bf1Player[id][RIFLE]++; }
-		case CSW_SG552: { bf1Player[id][SG552]++; bf1Player[id][RIFLE]++; }
-		case CSW_HEGRENADE: bf1Player[id][GRENADE]++;
-	}
-
-	bf1Player[id][ASSISTS]++;
-	bf1Player[id][KILLS]++;
-
-	return;
 }
