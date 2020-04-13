@@ -2305,21 +2305,23 @@ public display_hud(id)
 	else
 	{
 		iSeconds = (gPlayer[target][TIME] + get_user_time(target)), iMinutes = 0, iHours = 0;
-	
-		while (gPlayer[target][DEGREE] < sizeof(gDegrees) && iSeconds / 3600 >= str_to_num(gDegrees[gPlayer[target][DEGREE] + 1][HOURS])) gPlayer[target][DEGREE]++;
-	
+
+		while (gPlayer[target][DEGREE] < sizeof(gDegrees) - 1 && iSeconds / 3600 >= str_to_num(gDegrees[gPlayer[target][DEGREE] + 1][HOURS])) {
+			gPlayer[target][DEGREE]++;
+		}
+
 		while(iSeconds >= 60)
 		{
 			iSeconds -= 60;
 			iMinutes++;
-		
+
 			if (iMinutes >= 60)
 			{
 				iMinutes -= 60;
 				iHours++;
 			}
 		}
-		
+
 		if (gPlayer[target][HUD] < TYPE_STATUSTEXT) formatex(sInfo, charsmax(sInfo), "[%s]^n[Ranga]: %s^n[Odznaki]: %d/%d^n[Ordery]: %d/%d^n[Zabicia]: %d/%d^n[Czas Gry]: %i h %i min %i s^n[Stopien]: %s", PLUGIN, gRankName[gPlayer[target][RANK]], gPlayer[target][BADGES_COUNT], MAX_BADGES * 4, gPlayer[target][ORDERS_COUNT], MAX_ORDERS, gPlayer[target][KILLS], gPlayer[target][NEXT_RANK], iHours, iMinutes, iSeconds, gDegrees[gPlayer[target][DEGREE]][DEGREES]);
 		else formatex(sInfo, charsmax(sInfo), "[BF1] Zabicia: %d/%d  Ranga: %s Odznaki: %d/%d", gPlayer[target][KILLS], gPlayer[target][NEXT_RANK], gRankName[gPlayer[target][RANK]], gPlayer[target][BADGES_COUNT], MAX_BADGES * 4);
 	}
