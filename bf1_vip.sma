@@ -12,7 +12,7 @@
 
 #define VIP_FLAG ADMIN_LEVEL_H
 
-new Array:listVIPs, isVip, usedMenu, round = 0, bool:disabled;
+new Array:listVIPs, vip, usedMenu, round = 0, bool:disabled;
 
 new const commandVip[][]= { "say /vips", "say_team /vips", "say /vipy", "say_team /vipy" };
 
@@ -60,7 +60,7 @@ public client_authorized(id)
 
 		get_user_name(id, playerName, charsmax(playerName));
 
-		set_bit(id, isVip);
+		set_bit(id, vip);
 
 		for (new i = 0; i < listSize; i++) {
 			ArrayGetString(listVIPs, i, tempName, charsmax(tempName));
@@ -78,8 +78,8 @@ public client_authorized(id)
 
 public remove_vip(id)
 {
-	if (get_bit(id, isVip)) {
-		rem_bit(id, isVip);
+	if (get_bit(id, vip)) {
+		rem_bit(id, vip);
 
 		new name[MAX_NAME], tempName[MAX_NAME], size = ArraySize(listVIPs);
 
@@ -104,7 +104,7 @@ public client_disconnected(id)
 
 public client_infochanged(id)
 {
-	if (get_bit(id, isVip)) {
+	if (get_bit(id, vip)) {
 		new name[MAX_NAME], oldName[MAX_NAME];
 
 		get_user_info(id, "name", name, charsmax(name));
@@ -139,7 +139,7 @@ public game_commencing()
 
 public player_spawned(id)
 {
-	if (!get_bit(id, isVip) || !is_user_alive(id) || disabled) return PLUGIN_CONTINUE;
+	if (!get_bit(id, vip) || !is_user_alive(id) || disabled) return PLUGIN_CONTINUE;
 
 	if (round >= 3) {
 		show_vip_menu(id);
@@ -330,7 +330,7 @@ public death_msg()
 {
 	new killer = read_data(1), victim = read_data(2), hs = read_data(3);
 
-	if (!get_bit(killer, isVip) || !is_user_alive(killer) || get_user_team(killer) == get_user_team(victim)) return;
+	if (!get_bit(killer, vip) || !is_user_alive(killer) || get_user_team(killer) == get_user_team(victim)) return;
 
 	if (hs) {
 		set_dhudmessage(38, 218, 116, 0.50, 0.35, 0, 0.0, 1.0, 0.0, 0.0);
@@ -373,7 +373,7 @@ public vip_status()
 {
 	new id = get_msg_arg_int(1);
 
-	if (is_user_alive(id) && get_bit(id, isVip)) {
+	if (is_user_alive(id) && get_bit(id, vip)) {
 		set_msg_arg_int(2, ARG_BYTE, get_msg_arg_int(2) | 4);
 	}
 }
@@ -382,7 +382,7 @@ public say_text(msgId, msgDest, msgEnt)
 {
 	new id = get_msg_arg_int(1);
 
-	if (is_user_connected(id) && get_bit(id, isVip)) {
+	if (is_user_connected(id) && get_bit(id, vip)) {
 		new tempMessage[192], message[192], chatPrefix[16], playerName[MAX_PLAYERS];
 
 		get_msg_arg_string(2, tempMessage, charsmax(tempMessage));
@@ -449,4 +449,4 @@ stock bool:check_weapons(id)
 }
 
 public _get_user_vip(id)
-	return get_bit(id, isVip);
+	return get_bit(id, vip);
