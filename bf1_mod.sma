@@ -650,7 +650,7 @@ public event_deathmsg()
 
 		get_user_name(victim, playerName, charsmax(playerName));
 
-		place_package(victim, killer);
+		place_package(victim);
 
 		client_print_color(killer, killer, "^x04[BF1]^x01 Zabiles^x03 %s^x01 i wypadla z niego^x03 paczka^x01. Zabierz ja szybko, bo mozesz znalezc w niej kase, fragi, a nawet odznake!", playerName);
 	}
@@ -661,7 +661,7 @@ public event_on_hidestatus(id)
 
 public event_on_showstatus(id)
 {
-	new playerName[MAX_LENGTH], player = read_data(2), iPlayerRank = bf1Player[player][RANK], firstColor = 0, secondColor = 0;
+	new playerName[MAX_LENGTH], player = read_data(2), playerRank = bf1Player[player][RANK], firstColor = 0, secondColor = 0;
 
 	get_user_name(player, playerName, charsmax(playerName));
 
@@ -675,15 +675,15 @@ public event_on_showstatus(id)
 
 		set_hudmessage(firstColor, 50, secondColor, -1.0, 0.35, 1, 0.01, 3.0, 0.01, 0.01);
 
-		ShowSyncHudMsg(id, hudSyncAim, "%s : %s^n%d HP / %d AP / %s", playerName, bf1RankName[iPlayerRank], get_user_health(player), get_user_armor(player), weaponName);
+		ShowSyncHudMsg(id, hudSyncAim, "%s : %s^n%d HP / %d AP / %s", playerName, bf1RankName[playerRank], get_user_health(player), get_user_armor(player), weaponName);
 
 		new iconTime = floatround(cvarIconTime * 10);
 
-		if (iconTime > 0) create_icon(id, player, 55, sprites[iPlayerRank], iconTime);
+		if (iconTime > 0) create_icon(id, player, 55, sprites[playerRank], iconTime);
 	} else if (!get_bit(player, invisible)) {
 		set_hudmessage(firstColor, 50, secondColor, -1.0, 0.35, 1, 0.01, 3.0, 0.01, 0.01);
 
-		ShowSyncHudMsg(id, hudSyncAim, "%s : %s", playerName, bf1RankName[iPlayerRank]);
+		ShowSyncHudMsg(id, hudSyncAim, "%s : %s", playerName, bf1RankName[playerRank]);
 	}
 }
 
@@ -766,7 +766,7 @@ public weapon_other(ent)
 
 stock set_render(id, check=true)
 {
-	if (!cvarBadgePowers || !blockPowers || !is_user_alive(id) || (check && get_user_weapon(id) != CSW_KNIFE)) return;
+	if (!cvarBadgePowers || blockPowers || !is_user_alive(id) || (check && get_user_weapon(id) != CSW_KNIFE)) return;
 
 	new timeBadgeLevel = bf1Player[id][BADGES][BADGE_TIME];
 
@@ -779,7 +779,7 @@ stock set_render(id, check=true)
 
 public reset_render(id)
 {
-	if (!cvarBadgePowers || !blockPowers || !is_user_alive(id)) return;
+	if (!cvarBadgePowers || blockPowers || !is_user_alive(id)) return;
 
 	fm_set_rendering(id, kRenderFxNone, 0, 0, 0, kRenderTransTexture, 255);
 
@@ -788,7 +788,7 @@ public reset_render(id)
 
 public give_weapons(id)
 {
-	if (!cvarBadgePowers || !blockPowers || !is_user_alive(id)) return;
+	if (!cvarBadgePowers || blockPowers || !is_user_alive(id)) return;
 
 	new bool:bonus;
 
@@ -867,7 +867,7 @@ public player_spawn(id)
 
 	check_rank(id);
 
-	if (!cvarBadgePowers || !blockPowers) return HAM_IGNORED;
+	if (!cvarBadgePowers || blockPowers) return HAM_IGNORED;
 
 	set_render(id);
 
@@ -888,7 +888,7 @@ public player_spawn(id)
 
 public player_take_damage(victim, iInflictor, attacker, Float:damage, damageBits)
 {
-	if (!cvarBadgePowers || !blockPowers || !is_user_connected(attacker) || !is_user_alive(victim)) return HAM_IGNORED;
+	if (!cvarBadgePowers || blockPowers || !is_user_connected(attacker) || !is_user_alive(victim)) return HAM_IGNORED;
 
 	if (victim == attacker || cs_get_user_team(victim) == cs_get_user_team(attacker)) return HAM_IGNORED;
 
@@ -1032,33 +1032,32 @@ public use_package(id)
 	return PLUGIN_HANDLED;
 }
 
-public place_package(id, owner)
+public place_package(id)
 {
-	new Float:origin[3];
+	new ent, Float:origin[3];
 
-	pev(id, pev_origin, origin);
+	entity_get_vector(id, EV_VEC_origin, origin);
 
-	origin[2] -= 30.0;
+	origin[0] += 30.0;
+	origin[2] -= distance_to_floor(origin);
 
-	new entity = fm_create_entity("info_target");
+	ent = fm_create_entity("info_target");
 
-	set_pev(entity, pev_classname, "package");
-	set_pev(entity, pev_origin, origin);
+	set_pev(ent, pev_classname, "bf1_package");
 
-	engfunc(EngFunc_SetModel, entity, bf1Resources[MODEL_PACKAGE]);
+	engfunc(EngFunc_SetModel, ent, bf1Resources[MODEL_PACKAGE]);
 
-	set_pev(entity, pev_mins, Float:{ -10.0, -10.0, 0.0 });
-	set_pev(entity, pev_maxs, Float:{ 10.0, 10.0, 50.0 });
-	set_pev(entity, pev_size, Float:{ -1.0, -3.0, 0.0, 1.0, 1.0, 10.0 });
-	engfunc(EngFunc_SetSize, entity, Float:{ -1.0,-3.0,0.0 }, Float:{ 1.0,1.0,10.0 });
+	entity_set_origin(ent, origin);
 
-	set_pev(entity, pev_solid, SOLID_TRIGGER);
-	set_pev(entity, pev_movetype, MOVETYPE_FLY);
+	set_pev(ent, pev_mins, Float:{ -10.0, -10.0, 0.0 });
+	set_pev(ent, pev_maxs, Float:{ 10.0, 10.0, 50.0 });
+	set_pev(ent, pev_size, Float:{ -1.0, -3.0, 0.0, 1.0, 1.0, 10.0 });
+	engfunc(EngFunc_SetSize, ent, Float:{ -1.0, -3.0, 0.0 }, Float:{ 1.0, 1.0, 10.0 });
 
-	entity_set_int(entity, EV_INT_sequence, 1);
-	entity_set_float(entity, EV_FL_animtime, 360.0);
-	entity_set_float(entity, EV_FL_framerate,  1.0);
-	entity_set_float(entity, EV_FL_frame, 0.0);
+	entity_set_int(ent, EV_INT_solid, SOLID_TRIGGER);
+	set_pev(ent, pev_movetype, MOVETYPE_FLY);
+
+	return PLUGIN_CONTINUE;
 }
 
 public touch_package(entity, id)
@@ -1069,7 +1068,7 @@ public touch_package(entity, id)
 
 	pev(entity, pev_classname, className, charsmax(className));
 
-	if (!equal(className, "package")) return FMRES_IGNORED;
+	if (!equal(className, "bf1_package")) return FMRES_IGNORED;
 
 	new origin[3];
 
@@ -3182,6 +3181,22 @@ stock mysql_escape_string(const source[], dest[], length)
 	replace_all(dest, length, "'", "\'");
 	replace_all(dest, length, "`", "\`");
 	replace_all(dest, length, "^"", "\^"");
+}
+
+stock Float:distance_to_floor(Float:start[3], ignoreMonsters = 1)
+{
+	new Float:dest[3], Float:end[3];
+
+	dest[0] = start[0];
+	dest[1] = start[1];
+	dest[2] = -8191.0;
+
+	engfunc(EngFunc_TraceLine, start, dest, ignoreMonsters, 0, 0);
+	get_tr2(0, TR_vecEndPos, end);
+
+	new Float:ret = start[2] - end[2];
+
+	return ret > 0 ? ret : 0.0;
 }
 
 stock ham_strip_weapon(id, weaponName[])
