@@ -2415,7 +2415,7 @@ public cmd_add_badge(id, level, cid)
 	read_argv(2, badgeIndex, charsmax(badgeIndex));
 	read_argv(3, badgeLevel, charsmax(badgeLevel));
 
-	new badge = str_to_num(badgeIndex), level = str_to_num(badgeLevel), player = cmd_target(id, playerName, 0);
+	new badge = str_to_num(badgeIndex) - 1, level = str_to_num(badgeLevel), player = cmd_target(id, playerName, 0);
 
 	if (!player) {
 		console_print(id, "[BF1] Nie znaleziono podanego gracza!", playerName);
@@ -2423,7 +2423,7 @@ public cmd_add_badge(id, level, cid)
 		return PLUGIN_HANDLED;
 	}
 
-	if (badge > MAX_BADGES || badge <= 0) {
+	if (badge >= MAX_BADGES || badge < 0) {
 		console_print(id, "[BF1] Podales bledny numer odznaki!");
 
 		return PLUGIN_HANDLED;
@@ -2435,13 +2435,6 @@ public cmd_add_badge(id, level, cid)
 		return PLUGIN_HANDLED;
 	}
 
-	badge -= 1;
-	level -= 1;
-
-	bf1Player[player][BADGES][badge] = level;
-
-	save_stats(player, NORMAL);
-
 	new adminName[32];
 
 	get_user_name(id, adminName, charsmax(adminName));
@@ -2451,6 +2444,12 @@ public cmd_add_badge(id, level, cid)
 	client_print_color(id, id, "^x04[BF1]^x01 Przyznales odznake^x03 %s^x01 graczowi^x03 %s^x01.", bf1BadgeName[badge][level], playerName);
 
 	log_to_file(LOG_FILE, "[BF1-ADMIN] %s przyznal odznake %s graczowi %s.", adminName, bf1BadgeName[badge][level], playerName);
+
+	bf1Player[player][BADGES][badge] = level;
+
+	save_stats(player, NORMAL);
+
+	check_rank(player);
 
 	return PLUGIN_HANDLED;
 }
@@ -2465,9 +2464,9 @@ public cmd_add_badge_sql(id, level, cid)
 	read_argv(2, badgeIndex, charsmax(badgeIndex));
 	read_argv(3, badgeLevel, charsmax(badgeLevel));
 
-	new badge = str_to_num(badgeIndex), level = str_to_num(badgeLevel);
+	new badge = str_to_num(badgeIndex) - 1, level = str_to_num(badgeLevel);
 
-	if (badge > MAX_BADGES || badge <= 0) {
+	if (badge >= MAX_BADGES || badge < 0) {
 		console_print(id, "[BF1] Podales bledny numer odznaki!");
 
 		return PLUGIN_HANDLED;
@@ -2479,16 +2478,13 @@ public cmd_add_badge_sql(id, level, cid)
 		return PLUGIN_HANDLED;
 	}
 
-	badge -= 1;
-	level -= 1;
-
 	new tempData[512], playerNameSafe[MAX_SAFE_NAME], adminName[MAX_NAME], data[1];
 
 	data[0] = id;
 
 	mysql_escape_string(playerName, playerNameSafe, charsmax(playerNameSafe));
 
-	formatex(tempData, charsmax(tempData), "UPDATE bf1 SET badge%i = %i WHERE playerid=^"%s^"", badge + 1, level + 1, playerNameSafe);
+	formatex(tempData, charsmax(tempData), "UPDATE bf1 SET badge%i = %i WHERE playerid=^"%s^"", badge + 1, level, playerNameSafe);
 
 	SQL_ThreadQuery(sql, "cmd_add_badge_sql_handle", tempData, data, 1);
 
