@@ -9,6 +9,9 @@
 
 #define is_user_valid(%1) (1 <= %1 <= MAX_PLAYERS)
 
+#define MAX_NAME        MAX_NAME_LENGTH
+#define MAX_SAFE_NAME   MAX_NAME * 2
+
 /**
  * Returns how many badges are available.
  *
