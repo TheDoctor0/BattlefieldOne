@@ -13,7 +13,7 @@
 #include <bf1>
 
 #define PLUGIN "Battlefield One Mod"
-#define VERSION "2.0"
+#define VERSION "2.1"
 #define AUTHOR "O'Zone"
 
 #define MAX_RANKS 17
