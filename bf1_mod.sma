@@ -1183,7 +1183,7 @@ public check_badges(id)
 
 	new weaponKills, roundKills, roundHSKills, badge, level, bool:gained;
 
-	client_print_color(id, id, "^x04[BF1]^x01 Sprawdzanie zdobytych odznak...");
+	client_print_color(id, id, "^x04[BF1]^x01 Sprawdzanie zdobytych odznak i orderow...");
 
 	badge = bf1Player[id][BADGES][BADGE_KNIFE];
 
@@ -1505,8 +1505,6 @@ public check_orders(id)
 	if (!cvarBf1Enabled) return;
 
 	new bool:gained;
-
-	client_print_color(id, id, "^x04[BF1]^x01 Sprawdzanie zdobytych orderow...");
 
 	if (!bf1Player[id][ORDERS][ORDER_AIMBOT] && bf1Player[id][HS_KILLS] >= 2500) {
 		bf1Player[id][ORDERS][ORDER_AIMBOT] = 1;
