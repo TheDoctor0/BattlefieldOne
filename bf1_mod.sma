@@ -1113,10 +1113,13 @@ public check_rank(id)
 	if (!get_bit(id, loaded)) return;
 
 	new stats[8], hits[8], iPreviousRank = bf1Player[id][RANK], rank = get_user_stats(id, stats, hits);
+	bf1Player[id][RANK] = 0;
 
-	while(bf1Player[id][KILLS] >= bf1RankKills[bf1Player[id][RANK] + 1] && bf1Player[id][RANK] < MAX_RANKS) bf1Player[id][RANK]++
+	while (bf1Player[id][RANK] < MAX_RANKS - 1 && bf1Player[id][KILLS] >= bf1RankKills[bf1Player[id][RANK] + 1]) {
+		bf1Player[id][RANK]++;
+	}
 
-	bf1Player[id][NEXT_RANK] = (bf1RankKills[bf1Player[id][RANK] + 1] == bf1RankKills[MAX_RANKS] ? bf1RankKills[bf1Player[id][RANK]] : bf1RankKills[bf1Player[id][RANK] + 1]);
+	bf1Player[id][NEXT_RANK] = (bf1Player[id][RANK] == MAX_RANKS - 1 ? bf1RankKills[bf1Player[id][RANK]] : bf1RankKills[bf1Player[id][RANK] + 1]);
 
 	bf1Player[id][BADGES_COUNT] = 0;
 
