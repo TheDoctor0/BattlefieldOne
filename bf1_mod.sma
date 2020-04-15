@@ -886,13 +886,11 @@ public player_spawn(id)
 	return HAM_IGNORED;
 }
 
-public player_take_damage(victim, iInflictor, attacker, Float:damage, damageBits)
+public player_take_damage(victim, inflictor, attacker, Float:damage, damageBits)
 {
 	if (!cvarBadgePowers || blockPowers || !is_user_connected(attacker) || !is_user_alive(victim)) return HAM_IGNORED;
 
 	if (victim == attacker || cs_get_user_team(victim) == cs_get_user_team(attacker)) return HAM_IGNORED;
-
-	playerDamage[attacker][victim] += floatround(damage);
 
 	if (damageBits & DMG_BULLET) {
 		new bool:critical;
@@ -933,6 +931,7 @@ public player_take_damage(victim, iInflictor, attacker, Float:damage, damageBits
 
 	bf1Player[victim][DMG_RECEIVED] += floatround(damage);
 	bf1Player[attacker][DMG_TAKEN] += floatround(damage);
+	playerDamage[attacker][victim] += floatround(damage);
 
 	return HAM_HANDLED;
 }
@@ -1112,7 +1111,8 @@ public check_rank(id)
 {
 	if (!get_bit(id, loaded)) return;
 
-	new stats[8], hits[8], iPreviousRank = bf1Player[id][RANK], rank = get_user_stats(id, stats, hits);
+	new stats[8], hits[8], previousRank = bf1Player[id][RANK], rank = get_user_stats(id, stats, hits);
+
 	bf1Player[id][RANK] = 0;
 
 	while (bf1Player[id][RANK] < MAX_RANKS - 1 && bf1Player[id][KILLS] >= bf1RankKills[bf1Player[id][RANK] + 1]) {
@@ -1154,7 +1154,7 @@ public check_rank(id)
 		get_user_name(id, bf1Server[MOSTWINSNAME], charsmax(bf1Server[MOSTWINSNAME]));
 	}
 
-	if (is_ranked_higher(bf1Player[id][RANK], iPreviousRank)) {
+	if (is_ranked_higher(bf1Player[id][RANK], previousRank)) {
 		client_cmd(id, "spk %s", bf1Sounds[SOUND_RANKUP]);
 
 		client_print_color(id, id, "^x04[BF1]^x01 Gratulacje! Awansowales do rangi^x03 %s^x01.", bf1RankName[bf1Player[id][RANK]]);
