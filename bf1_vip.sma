@@ -7,7 +7,7 @@
 #include <bf1>
 
 #define PLUGIN "Battlefield One VIP"
-#define VERSION "2.1"
+#define VERSION "2.2"
 #define AUTHOR "O'Zone"
 
 #define VIP_FLAG ADMIN_LEVEL_H
