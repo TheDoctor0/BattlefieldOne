@@ -12,17 +12,24 @@
 
 #define VIP_FLAG ADMIN_LEVEL_H
 
-new Array:listVIPs, vip, usedMenu, round = 0, bool:disabled;
+new Array:listVIPs, vip, usedMenu, smallMaps, freeVip, freeFrom, freeTo, round = 0, bool:disabled;
 
 new const commandVip[][]= { "say /vips", "say_team /vips", "say /vipy", "say_team /vipy" };
 
 new const primaryWeapons = (1<<CSW_XM1014) | (1<<CSW_MAC10) | (1<<CSW_AUG) | (1<<CSW_M249) | (1<<CSW_GALIL) | (1<<CSW_AK47) | (1<<CSW_M4A1) | (1<<CSW_AWP) | (1<<CSW_SG550) | (1<<CSW_G3SG1) | (1<<CSW_UMP45) | (1<<CSW_MP5NAVY) | (1<<CSW_FAMAS) | (1<<CSW_SG552) | (1<<CSW_TMP) | (1<<CSW_P90) | (1<<CSW_M3);
+
+enum _:{ FREE_HOURS, FREE_ALWAYS };
 
 forward amxbans_admin_connect(id);
 
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
+
+	bind_pcvar_num(register_cvar("bf1_vip_small_maps", "0"), smallMaps);
+	bind_pcvar_num(register_cvar("bf1_vip_free", "0"), freeVip);
+	bind_pcvar_num(register_cvar("bf1_vip_free_from", "23"), freeFrom);
+	bind_pcvar_num(register_cvar("bf1_vip_free_to", "09"), freeTo);
 
 	for(new i; i < sizeof commandVip; i++) register_clcmd(commandVip[i], "show_vips");
 
@@ -42,7 +49,7 @@ public plugin_init()
 }
 
 public plugin_cfg()
-	check_map();
+	if (!smallMaps) check_map();
 
 public plugin_natives()
 	register_native("bf1_get_user_vip", "_get_user_vip", 1);
@@ -51,11 +58,20 @@ public plugin_end()
 	ArrayDestroy(listVIPs);
 
 public amxbans_admin_connect(id)
-	client_authorized(id, "");
+	client_authorized_post(id);
 
 public client_authorized(id)
+	client_authorized_post(id);
+
+public client_authorized_post(id)
 {
-	if (get_user_flags(id) & VIP_FLAG) {
+	new currentTime[3], hour;
+
+	get_time("%H", currentTime, charsmax(currentTime));
+
+	hour = str_to_num(currentTime);
+
+	if (get_user_flags(id) & VIP_FLAG || freeVip == FREE_ALWAYS || (freeVip == FREE_HOURS && (hour >= get_pcvar_num(freeFrom) || hour < get_pcvar_num(freeTo)))) {
 		new playerName[MAX_PLAYERS], tempName[MAX_PLAYERS], listSize = ArraySize(listVIPs);
 
 		get_user_name(id, playerName, charsmax(playerName));
@@ -139,7 +155,11 @@ public game_commencing()
 
 public player_spawned(id)
 {
-	if (!get_bit(id, vip) || !is_user_alive(id) || disabled) return PLUGIN_CONTINUE;
+	if (!is_user_alive(id) || disabled) return PLUGIN_CONTINUE;
+
+	client_authorized_post(id);
+
+	if (!get_bit(id, vip)) return PLUGIN_CONTINUE;
 
 	if (round >= 3) {
 		show_vip_menu(id);
